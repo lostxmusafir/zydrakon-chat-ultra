@@ -1,8 +1,16 @@
+export interface SearchResult {
+  title: string;
+  url: string;
+  snippet: string;
+}
+
 export interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: string;
   model_used?: string;
+  search_query?: string;
+  search_results?: SearchResult[];
 }
 
 export interface Session {
@@ -22,4 +30,6 @@ export interface ChatResponse {
   model_used: string;
   cached: boolean;
   latency_ms: number;
+  search_query?: string;
+  search_results?: SearchResult[];
 }

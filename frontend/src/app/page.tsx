@@ -17,7 +17,9 @@ import {
   Moon,
   Paperclip,
   PanelLeftClose,
-  PanelLeft
+  PanelLeft,
+  Globe,
+  ExternalLink
 } from "lucide-react";
 import { Message, Session, RateLimits } from "@/lib/types";
 import { api, ApiError } from "@/lib/api";
@@ -77,6 +79,7 @@ export default function Home() {
   const [selectedModel, setSelectedModel] = useState("deepseek/deepseek-v4-flash");
   const [limits, setLimits] = useState<RateLimits | null>(null);
   const [thinkingMode, setThinkingMode] = useState(false);
+  const [loadingPhase, setLoadingPhase] = useState(0);
   
   // Layout states
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -123,6 +126,19 @@ export default function Home() {
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 240)}px`;
     }
   }, [inputText]);
+
+  // Advance loading phase while AI is responding
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingPhase(0);
+      return;
+    }
+    const maxPhase = thinkingMode ? 2 : 1;
+    const interval = setInterval(() => {
+      setLoadingPhase(prev => (prev < maxPhase ? prev + 1 : prev));
+    }, 2200);
+    return () => clearInterval(interval);
+  }, [isLoading, thinkingMode]);
 
   const toggleTheme = () => {
     if (isDarkMode) {
@@ -237,7 +253,9 @@ export default function Home() {
         role: "assistant",
         content: response.response,
         timestamp: new Date().toISOString(),
-        model_used: response.model_used
+        model_used: response.model_used,
+        search_query: response.search_query,
+        search_results: response.search_results
       };
       
       setMessages(prev => [...prev, assistantMessage]);
@@ -622,7 +640,46 @@ export default function Home() {
                           </div>
                         ) : (
                           // Assistant message rendered plain text in warm serif font (Claude Style!)
-                          <div className="claude-serif text-[var(--text-main)] pr-4">
+                          <div className="claude-serif text-[var(--text-main)] pr-4 w-full">
+                            {msg.search_results && msg.search_results.length > 0 && (
+                              <div className="mb-4 w-full">
+                                <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)] mb-2 select-none">
+                                  <Globe className="w-3.5 h-3.5 text-[var(--accent-color)]" />
+                                  <span>Sources ({msg.search_results.length})</span>
+                                  {msg.search_query && (
+                                    <span className="text-[10px] font-normal font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#22221f] border border-[var(--border-color)]">
+                                      Search: "{msg.search_query}"
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {msg.search_results.map((src, idx) => {
+                                    let hostname = "";
+                                    try {
+                                      hostname = new URL(src.url).hostname.replace("www.", "");
+                                    } catch {
+                                      hostname = "link";
+                                    }
+                                    return (
+                                      <a
+                                        key={idx}
+                                        href={src.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        title={`${src.title}\n\n${src.snippet}`}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border-color)] bg-[#fdfcfb] dark:bg-[#1c1c1a] hover:bg-[#eae8e2] dark:hover:bg-[#2d2d2a] text-xs transition-all max-w-[200px] text-[var(--text-main)] group"
+                                      >
+                                        <span className="w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[9px] font-bold text-[var(--accent-color)] shrink-0">
+                                          {idx + 1}
+                                        </span>
+                                        <span className="truncate font-sans font-medium hover:underline flex-1">{hostname}</span>
+                                        <ExternalLink className="w-3 h-3 text-[var(--text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity" />
+                                      </a>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
                             {formatMessageContent(msg.content)}
                           </div>
                         )}
@@ -651,18 +708,68 @@ export default function Home() {
                   );
                 })}
 
-                {/* Assistant Thinking State */}
+                {/* Enhanced AI Loading State */}
                 {isLoading && (
                   <div className="flex items-start gap-4 justify-start">
-                    <div className="w-8 h-8 rounded-full border border-[var(--border-color)] bg-[#f3f1eb] dark:bg-[#22221f] text-[11px] font-bold text-[var(--accent-color)] flex items-center justify-center flex-shrink-0 shadow-sm select-none animate-pulse">
-                      Z
+                    {/* Spinning avatar ring */}
+                    <div className="relative flex-shrink-0 mt-0.5">
+                      <div className="w-8 h-8 rounded-full bg-[#f3f1eb] dark:bg-[#22221f] text-[11px] font-bold text-[var(--accent-color)] flex items-center justify-center shadow-sm select-none border border-[var(--border-color)]">
+                        Z
+                      </div>
+                      <div
+                        className="absolute animate-spin rounded-full border-2 border-transparent"
+                        style={{
+                          inset: '-3px',
+                          borderTopColor: 'var(--accent-color)',
+                          borderRightColor: 'var(--accent-color)',
+                          opacity: 0.6,
+                        }}
+                      />
                     </div>
-                    <div className="flex flex-col space-y-1">
-                      <div className="bg-transparent text-[var(--text-secondary)] py-1.5 px-1 flex items-center gap-1.5 font-mono text-xs select-none">
-                        <span>{thinkingMode ? "Zydrakon is searching & reasoning" : "Zydrakon is thinking"}</span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)] bounce-dot delay-0"></span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)] bounce-dot delay-150"></span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)] bounce-dot delay-300"></span>
+
+                    <div className="flex flex-col gap-2.5 min-w-[240px] max-w-xs select-none">
+                      {/* Phase label */}
+                      <div className="flex items-center gap-2 text-xs font-mono text-[var(--text-secondary)]">
+                        <span className="text-[var(--accent-color)] font-semibold transition-all duration-500">
+                          {thinkingMode
+                            ? loadingPhase === 0
+                              ? '🔍 Searching the web...'
+                              : loadingPhase === 1
+                              ? '📖 Reading sources...'
+                              : '🧠 Reasoning & composing...'
+                            : loadingPhase === 0
+                            ? '⚡ Processing request...'
+                            : '✍️ Composing response...'}
+                        </span>
+                      </div>
+
+                      {/* Phase pills — only in thinking mode */}
+                      {thinkingMode && (
+                        <div className="flex items-center gap-1.5">
+                          {(['Search', 'Read', 'Reason'] as const).map((label, i) => (
+                            <span
+                              key={label}
+                              className={`text-[9px] font-mono px-2 py-0.5 rounded-full border transition-all duration-500 ${
+                                loadingPhase >= i
+                                  ? 'bg-[var(--accent-color)]/15 border-[var(--accent-color)]/50 text-[var(--accent-color)]'
+                                  : 'border-[var(--border-color)] text-[var(--text-secondary)] opacity-30'
+                              }`}
+                            >
+                              {label}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Skeleton shimmer lines */}
+                      <div className="space-y-2 pt-0.5">
+                        {[92, 75, 55].map((w, i) => (
+                          <div
+                            key={i}
+                            className="h-2 rounded-full bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 dark:from-[#2a2a28] dark:via-[#3d3d39] dark:to-[#2a2a28] animate-pulse"
+                            style={{ width: `${w}%`, animationDelay: `${i * 180}ms` }}
+                          />
+                        ))}
                       </div>
                     </div>
                   </div>

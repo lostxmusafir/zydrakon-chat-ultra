@@ -1,6 +1,6 @@
 import requests
 import logging
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from fastapi import HTTPException
 from backend.utils.config import settings
 from backend.services.search import search_service
@@ -121,7 +121,7 @@ class OpenRouterClient:
             logger.error(f"Failed to generate optimized search query: {str(e)}")
             return "NO_SEARCH"
 
-    def call_openrouter(self, message: str, requested_model: str, history: List[dict] = None, thinking: bool = False) -> Tuple[str, str]:
+    def call_openrouter(self, message: str, requested_model: str, history: List[dict] = None, thinking: bool = False) -> Tuple[str, str, Optional[str], Optional[List[dict]]]:
         """
         Sends request to OpenRouter or OpenCode Zen fallback.
         Incorporates web search if thinking mode is enabled.
@@ -129,15 +129,28 @@ class OpenRouterClient:
         # 1. Check if both keys are missing
         if not self.api_key and not settings.OPENCODE_API_KEY:
             mock_resp = f"[Zydrakon AI Developer Mode] Hello! Your backend is running successfully, but neither `OPENROUTER_API_KEY` nor `OPENCODE_API_KEY` are set in backend/.env. Please add at least one key to enable live AI responses. This is a cached/fallback mock reply to: '{message}'"
-            return mock_resp, "mock-developer-model"
+            search_query_used = None
+            search_results_list = None
+            if thinking:
+                search_query_used = f"developer mock info: {message[:15]}"
+                search_results_list = [
+                    {"title": "Zydrakon AI Documentation", "url": "https://zydrakon.ai/docs", "snippet": "Official documentation and system architecture guides for the Zydrakon AI framework, engineered by Raj Patil."},
+                    {"title": "Raj Patil Developer Portfolio", "url": "https://rajpatil.dev", "snippet": "Personal website and software engineering portfolio of Raj Patil, creator of Zydrakon AI."},
+                    {"title": "FastAPI Web Application Development", "url": "https://fastapi.tiangolo.com", "snippet": "FastAPI framework, high performance, easy to learn, fast to code, ready for production."}
+                ]
+            return mock_resp, "mock-developer-model", search_query_used, search_results_list
 
         # 2. Run web search if thinking mode is ON
         search_results_text = ""
+        search_query_used = None
+        search_results_list = None
         if thinking:
             search_query = self._generate_search_query(message, history)
             if search_query and search_query != "NO_SEARCH":
+                search_query_used = search_query
                 results = search_service.search(search_query)
                 if results:
+                    search_results_list = results
                     search_results_text = "\n\n--- WEB SEARCH RESULTS ---\n"
                     search_results_text += f"Search query: {search_query}\n\n"
                     for r in results:
@@ -179,7 +192,7 @@ class OpenRouterClient:
             logger.info(f"Attempting OpenRouter call with model: {requested_model}")
             try:
                 content = self._call_provider_api("OpenRouter", self.api_url, self.api_key, requested_model, messages_payload)
-                return content, requested_model
+                return content, requested_model, search_query_used, search_results_list
             except Exception as e:
                 logger.error(f"OpenRouter call failed for {requested_model}: {str(e)}")
                 last_error = f"OpenRouter ({requested_model}) error: {str(e)}"
@@ -191,7 +204,7 @@ class OpenRouterClient:
                 logger.info(f"Attempting OpenCode Zen fallback call with candidate model: {candidate}")
                 try:
                     content = self._call_provider_api("OpenCodeZen", self.opencode_api_url, settings.OPENCODE_API_KEY, candidate, messages_payload)
-                    return content, f"opencode/{candidate}"
+                    return content, f"opencode/{candidate}", search_query_used, search_results_list
                 except Exception as e:
                     logger.error(f"OpenCode Zen call failed for candidate {candidate}: {str(e)}")
                     last_error = f"OpenCode Zen ({candidate}) error: {str(e)}"
@@ -204,7 +217,7 @@ class OpenRouterClient:
                 logger.info(f"Attempting OpenRouter fallback model: {model}")
                 try:
                     content = self._call_provider_api("OpenRouter", self.api_url, self.api_key, model, messages_payload)
-                    return content, model
+                    return content, model, search_query_used, search_results_list
                 except Exception as e:
                     logger.error(f"OpenRouter fallback failed for {model}: {str(e)}")
                     last_error = f"OpenRouter fallback ({model}) error: {str(e)}"
@@ -217,7 +230,7 @@ class OpenRouterClient:
                 logger.info(f"Attempting OpenCode Zen fallback model: {model}")
                 try:
                     content = self._call_provider_api("OpenCodeZen", self.opencode_api_url, settings.OPENCODE_API_KEY, model, messages_payload)
-                    return content, f"opencode/{model}"
+                    return content, f"opencode/{model}", search_query_used, search_results_list
                 except Exception as e:
                     logger.error(f"OpenCode Zen fallback failed for {model}: {str(e)}")
                     last_error = f"OpenCode Zen fallback ({model}) error: {str(e)}"

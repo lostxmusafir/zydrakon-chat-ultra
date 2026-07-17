@@ -7,11 +7,18 @@ class ChatRequest(BaseModel):
     model: Optional[str] = Field("meta-llama/llama-3-8b-instruct:free", description="Specific OpenRouter free model to use")
     thinking: Optional[bool] = Field(False, description="Enable thinking mode/websearch")
 
+class SearchResult(BaseModel):
+    title: str
+    url: str
+    snippet: str
+
 class ChatResponse(BaseModel):
     response: str
     model_used: str
     cached: bool
     latency_ms: int
+    search_query: Optional[str] = None
+    search_results: Optional[List[SearchResult]] = None
 
 class SessionResponse(BaseModel):
     id: str
@@ -22,6 +29,8 @@ class MessageResponse(BaseModel):
     content: str
     timestamp: str
     model_used: Optional[str] = None
+    search_query: Optional[str] = None
+    search_results: Optional[List[SearchResult]] = None
 
 class MessagesListResponse(BaseModel):
     messages: List[MessageResponse]

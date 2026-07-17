@@ -193,5 +193,54 @@ def test_thinking_mode_payload():
     assert "[Zydrakon AI Developer Mode]" in data["response"]
     assert data["model_used"] == "mock-developer-model"
 
+def test_thinking_mode_with_results():
+    resp = client.post("/api/sessions")
+    session_id = resp.json()["id"]
+
+    chat_payload = {
+        "session_id": session_id,
+        "message": "What is the latest SpaceX news?",
+        "model": "meta-llama/llama-3-8b-instruct:free",
+        "thinking": True
+    }
+
+    mock_search_results = [
+        {"title": "SpaceX Launch News", "url": "https://spacex.com/news1", "snippet": "SpaceX launched another Starlink rocket today."}
+    ]
+
+    from unittest.mock import patch
+    with patch("backend.services.openrouter.openrouter_client.call_openrouter") as mock_call:
+        mock_call.return_value = (
+            "SpaceX has launched Starlink recently.",
+            "meta-llama/llama-3-8b-instruct:free",
+            "SpaceX news",
+            mock_search_results
+        )
+
+        resp_chat = client.post("/api/chat", json=chat_payload)
+        assert resp_chat.status_code == 200
+        data = resp_chat.json()
+        assert data["response"] == "SpaceX has launched Starlink recently."
+        assert data["search_query"] == "SpaceX news"
+        assert len(data["search_results"]) == 1
+        assert data["search_results"][0]["title"] == "SpaceX Launch News"
+        assert data["search_results"][0]["url"] == "https://spacex.com/news1"
+        assert data["search_results"][0]["snippet"] == "SpaceX launched another Starlink rocket today."
+
+        # Verify it is retrieved from database history correctly
+        msgs_resp = client.get(f"/api/sessions/{session_id}/messages")
+        assert msgs_resp.status_code == 200
+        msgs = msgs_resp.json()["messages"]
+        # There should be 2 messages (user + assistant)
+        assert len(msgs) == 2
+        # Assistant message should contain search query and results
+        asst_msg = msgs[1]
+        assert asst_msg["role"] == "assistant"
+        assert asst_msg["search_query"] == "SpaceX news"
+        assert len(asst_msg["search_results"]) == 1
+        assert asst_msg["search_results"][0]["title"] == "SpaceX Launch News"
+        assert asst_msg["search_results"][0]["url"] == "https://spacex.com/news1"
+        assert asst_msg["search_results"][0]["snippet"] == "SpaceX launched another Starlink rocket today."
+
 
 

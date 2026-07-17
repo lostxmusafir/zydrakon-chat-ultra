@@ -153,7 +153,7 @@ async def chat(chat_request: ChatRequest, request: Request):
 
     start_time = time.time()
     try:
-        reply_content, actual_model = openrouter_client.call_openrouter(
+        reply_content, actual_model, search_query, search_results = openrouter_client.call_openrouter(
             message=message_content,
             requested_model=model_used,
             history=history_payload,
@@ -177,9 +177,11 @@ async def chat(chat_request: ChatRequest, request: Request):
         )
         # Save assistant message
         asst_msg_id = str(uuid.uuid4())
+        import json
+        search_results_json = json.dumps(search_results) if search_results else None
         conn.execute(
-            "INSERT INTO messages (id, session_id, role, content, model_used) VALUES (?, ?, ?, ?, ?);",
-            (asst_msg_id, session_id, "assistant", reply_content, actual_model)
+            "INSERT INTO messages (id, session_id, role, content, model_used, search_query, search_results) VALUES (?, ?, ?, ?, ?, ?, ?);",
+            (asst_msg_id, session_id, "assistant", reply_content, actual_model, search_query, search_results_json)
         )
         conn.commit()
     except Exception as e:
@@ -199,7 +201,9 @@ async def chat(chat_request: ChatRequest, request: Request):
         response=reply_content,
         model_used=actual_model,
         cached=False,
-        latency_ms=latency_ms
+        latency_ms=latency_ms,
+        search_query=search_query,
+        search_results=search_results
     )
 
 @router.get("/limits", response_model=RateLimitInfo)

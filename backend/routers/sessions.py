@@ -61,19 +61,29 @@ async def get_messages(session_id: str):
             raise HTTPException(status_code=404, detail="Session not found")
 
         cursor = conn.execute(
-            "SELECT role, content, timestamp, model_used FROM messages WHERE session_id = ? ORDER BY timestamp ASC;",
+            "SELECT role, content, timestamp, model_used, search_query, search_results FROM messages WHERE session_id = ? ORDER BY timestamp ASC;",
             (session_id,)
         )
         rows = cursor.fetchall()
-        messages = [
-            MessageResponse(
-                role=row["role"],
-                content=row["content"],
-                timestamp=row["timestamp"],
-                model_used=row["model_used"]
+        import json
+        messages = []
+        for row in rows:
+            results_list = None
+            if row["search_results"]:
+                try:
+                    results_list = json.loads(row["search_results"])
+                except Exception:
+                    pass
+            messages.append(
+                MessageResponse(
+                    role=row["role"],
+                    content=row["content"],
+                    timestamp=row["timestamp"],
+                    model_used=row["model_used"],
+                    search_query=row["search_query"],
+                    search_results=results_list
+                )
             )
-            for row in rows
-        ]
         return MessagesListResponse(messages=messages)
     except HTTPException as he:
         raise he

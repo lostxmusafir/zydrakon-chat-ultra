@@ -32,9 +32,21 @@ def init_db():
                 content TEXT NOT NULL,
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 model_used TEXT,
+                search_query TEXT,
+                search_results TEXT,
                 FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
             );
         """)
+        
+        # Migrations for existing databases
+        try:
+            conn.execute("ALTER TABLE messages ADD COLUMN search_query TEXT;")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            conn.execute("ALTER TABLE messages ADD COLUMN search_results TEXT;")
+        except sqlite3.OperationalError:
+            pass
         
         # Create Cached Responses with a compound unique constraint
         conn.execute("""
