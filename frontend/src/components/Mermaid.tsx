@@ -20,6 +20,7 @@ export default function Mermaid({ chart, isDarkMode }: MermaidProps) {
         startOnLoad: false,
         theme: isDarkMode ? "dark" : "default",
         securityLevel: "loose",
+        suppressErrorRendering: true,
         fontFamily: "var(--font-inter), sans-serif",
         themeVariables: {
           background: isDarkMode ? "#151513" : "#fbfaf7",
@@ -30,6 +31,10 @@ export default function Mermaid({ chart, isDarkMode }: MermaidProps) {
           tertiaryColor: isDarkMode ? "#1a1a18" : "#fbfaf7",
         }
       });
+      // Override parseError to prevent global uncaught exceptions during streaming
+      (mermaid as any).parseError = (err: any, hash: any) => {
+        console.warn("Mermaid silent parse warning:", err);
+      };
     } catch (e) {
       console.error("Failed to initialize mermaid", e);
     }
@@ -43,8 +48,12 @@ export default function Mermaid({ chart, isDarkMode }: MermaidProps) {
         // Generate a random valid id
         const id = `mermaid-svg-${Math.random().toString(36).substring(2, 11)}`;
         
+        // Clean up common LLM syntax issues (e.g. unquoted link labels with parentheses)
+        let sanitizedChart = chart;
+        sanitizedChart = sanitizedChart.replace(/\|([^"|\r\n]+)\|/g, '|"$1"|');
+        
         // Render the diagram
-        const { svg: renderedSvg } = await mermaid.render(id, chart);
+        const { svg: renderedSvg } = await mermaid.render(id, sanitizedChart);
         
         if (isMounted) {
           setSvg(renderedSvg);

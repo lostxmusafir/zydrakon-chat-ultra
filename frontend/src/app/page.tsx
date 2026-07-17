@@ -28,6 +28,7 @@ const Mermaid = dynamic(() => import("../components/Mermaid"), {
 });
 
 const FREE_MODELS = [
+  { id: "deepseek/deepseek-v4-flash", name: "DeepSeek V4 Flash" },
   { id: "poolside/laguna-m.1:free", name: "Laguna M.1 (Poolside) Free" },
   { id: "nvidia/nemotron-3-ultra-550b-a55b:free", name: "Nemotron-3 Ultra 550B (Nvidia) Free" },
   { id: "meta-llama/llama-3-8b-instruct:free", name: "Llama 3 8B Free" },
@@ -73,8 +74,9 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rateLimitError, setRateLimitError] = useState<{ message: string; retryAfter?: string } | null>(null);
-  const [selectedModel, setSelectedModel] = useState("meta-llama/llama-3-8b-instruct:free");
+  const [selectedModel, setSelectedModel] = useState("deepseek/deepseek-v4-flash");
   const [limits, setLimits] = useState<RateLimits | null>(null);
+  const [thinkingMode, setThinkingMode] = useState(false);
   
   // Layout states
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -229,7 +231,7 @@ export default function Home() {
     setMessages(prev => [...prev, userMessage]);
 
     try {
-      const response = await api.sendChatMessage(activeSessionId, userText, selectedModel);
+      const response = await api.sendChatMessage(activeSessionId, userText, selectedModel, thinkingMode);
       
       const assistantMessage: Message = {
         role: "assistant",
@@ -477,6 +479,20 @@ export default function Home() {
               </div>
             )}
 
+            {/* Thinking Mode Toggle Switch */}
+            <button
+              onClick={() => setThinkingMode(!thinkingMode)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold font-sans transition-all select-none ${
+                thinkingMode
+                  ? "bg-[var(--accent-color)] text-white border-[var(--accent-color)] shadow-sm"
+                  : "border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[#eae8e2] dark:hover:bg-[#2d2d2a] hover:text-[var(--text-main)]"
+              }`}
+              title="Toggle Thinking & Web Search Mode"
+            >
+              <Sparkles className={`w-3.5 h-3.5 ${thinkingMode ? "animate-pulse" : ""}`} />
+              <span>Thinking Mode: {thinkingMode ? "ON" : "OFF"}</span>
+            </button>
+
             {/* Dark Mode Toggle */}
             <button
               onClick={toggleTheme}
@@ -524,7 +540,7 @@ export default function Home() {
                     />
                     
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-[var(--border-color)]/50">
-                      <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                      <div className="flex items-center gap-3 text-xs text-[var(--text-secondary)]">
                         <button 
                           type="button" 
                           className="p-1 rounded hover:bg-slate-100 dark:hover:bg-[#2e2e2a]"
@@ -532,6 +548,20 @@ export default function Home() {
                         >
                           <Paperclip className="w-4 h-4 text-slate-500" />
                         </button>
+                        
+                        <button
+                          type="button"
+                          onClick={() => setThinkingMode(!thinkingMode)}
+                          className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] font-semibold transition-all ${
+                            thinkingMode
+                              ? "bg-[var(--accent-color)] text-white border-[var(--accent-color)] shadow-sm"
+                              : "border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[#eae8e2] dark:hover:bg-[#2d2d2a]"
+                          }`}
+                        >
+                          <Sparkles className={`w-3 h-3 ${thinkingMode ? "animate-pulse" : ""}`} />
+                          <span>Thinking {thinkingMode ? "ON" : "OFF"}</span>
+                        </button>
+                        
                         <span className="text-[10px] font-mono opacity-80 uppercase tracking-wider hidden sm:block">SQLite Duplicate Filter Active</span>
                       </div>
                       
@@ -629,7 +659,7 @@ export default function Home() {
                     </div>
                     <div className="flex flex-col space-y-1">
                       <div className="bg-transparent text-[var(--text-secondary)] py-1.5 px-1 flex items-center gap-1.5 font-mono text-xs select-none">
-                        <span>Zydrakon is thinking</span>
+                        <span>{thinkingMode ? "Zydrakon is searching & reasoning" : "Zydrakon is thinking"}</span>
                         <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)] bounce-dot delay-0"></span>
                         <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)] bounce-dot delay-150"></span>
                         <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)] bounce-dot delay-300"></span>
@@ -690,7 +720,7 @@ export default function Home() {
                 />
                 
                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-[var(--border-color)]/50">
-                  <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] select-none">
+                  <div className="flex items-center gap-3 text-xs text-[var(--text-secondary)] select-none">
                     <button 
                       type="button" 
                       className="p-1 rounded hover:bg-slate-100 dark:hover:bg-[#2e2e2a]"
@@ -698,6 +728,20 @@ export default function Home() {
                     >
                       <Paperclip className="w-4 h-4 text-slate-500" />
                     </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => setThinkingMode(!thinkingMode)}
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] font-semibold transition-all ${
+                        thinkingMode
+                          ? "bg-[var(--accent-color)] text-white border-[var(--accent-color)] shadow-sm"
+                          : "border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[#eae8e2] dark:hover:bg-[#2d2d2a]"
+                      }`}
+                    >
+                      <Sparkles className={`w-3 h-3 ${thinkingMode ? "animate-pulse" : ""}`} />
+                      <span>Thinking {thinkingMode ? "ON" : "OFF"}</span>
+                    </button>
+                    
                     <span className="text-[9px] font-mono opacity-80">Local SQLite cache filter active</span>
                   </div>
                   

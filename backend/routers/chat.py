@@ -149,12 +149,15 @@ async def chat(chat_request: ChatRequest, request: Request):
     # Append current user query
     history_payload.append({"role": "user", "content": message_content})
 
+    thinking_mode = chat_request.thinking or False
+
     start_time = time.time()
     try:
         reply_content, actual_model = openrouter_client.call_openrouter(
             message=message_content,
             requested_model=model_used,
-            history=history_payload
+            history=history_payload,
+            thinking=thinking_mode
         )
     except HTTPException as he:
         raise he

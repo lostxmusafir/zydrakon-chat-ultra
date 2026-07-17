@@ -3,6 +3,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     OPENROUTER_API_KEY: str = ""
+    OPENCODE_API_KEY: str = ""
+    OPENCODE_BASE_URL: str = "https://opencode.ai/zen/v1"
     FRONTEND_URL: str = "http://localhost:3000"
     RATE_LIMIT_RPM: int = 20
     RATE_LIMIT_DAILY: int = 50

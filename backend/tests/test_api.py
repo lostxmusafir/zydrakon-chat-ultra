@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 # Set testing environment variables before importing app
 os.environ["DATABASE_URL"] = "test_chat.db"
 os.environ["OPENROUTER_API_KEY"] = "" # Keep it blank to test mock fallback
+os.environ["OPENCODE_API_KEY"] = "" # Keep it blank to test mock fallback in tests
 os.environ["RATE_LIMIT_DAILY"] = "5"
 os.environ["RATE_LIMIT_RPM"] = "3"
 
@@ -173,5 +174,24 @@ def test_identity_orchestration():
     assert res_pb.status_code == 200
     data_pb = res_pb.json()
     assert "neural network architecture" in data_pb["response"]
+
+def test_thinking_mode_payload():
+    resp = client.post("/api/sessions")
+    session_id = resp.json()["id"]
+
+    chat_payload = {
+        "session_id": session_id,
+        "message": "What is the capital of France?",
+        "model": "meta-llama/llama-3-8b-instruct:free",
+        "thinking": True
+    }
+
+    # Should run successfully and trigger developer mock mode since API keys are empty in test environment
+    resp_chat = client.post("/api/chat", json=chat_payload)
+    assert resp_chat.status_code == 200
+    data = resp_chat.json()
+    assert "[Zydrakon AI Developer Mode]" in data["response"]
+    assert data["model_used"] == "mock-developer-model"
+
 
 
