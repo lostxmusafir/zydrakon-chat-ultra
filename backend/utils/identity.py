@@ -1,0 +1,80 @@
+import re
+from typing import Optional
+
+def detect_identity_query(message: str) -> Optional[str]:
+    """
+    Detects if the user is asking about the model's creator, source code, or pre-brain (base model).
+    If a query matches, returns a premium, informative markdown response. Otherwise, returns None.
+    """
+    # Normalize query (lowercase, remove punctuation except spaces)
+    normalized = re.sub(r'[^\w\s]', '', message.lower()).strip()
+    
+    # 1. Check for creator / builder / maker / developer
+    creator_patterns = [
+        r"who (made|created|developed|programmed|coded|designed) you",
+        r"who is your (creator|developer|maker|author|father|programmer|designer|parent)",
+        r"who is raj\b",
+        r"who is raj patil",
+        r"\b(creator|developer|maker|author|programmer|designer)\b.*\byou\b",
+        r"\byou\b.*\b(creator|developer|maker|author|programmer|designer)\b"
+    ]
+    
+    # 2. Check for source code / repositories
+    source_patterns = [
+        r"source code",
+        r"sourcecode",
+        r"github",
+        r"git repo",
+        r"git repository",
+        r"where is (your|the) code",
+        r"are you open source",
+        r"is your code open"
+    ]
+    
+    # 3. Check for pre-brain / base model / base brain
+    prebrain_patterns = [
+        r"pre\s?brain",
+        r"base\s?model",
+        r"base\s?brain",
+        r"what model are you",
+        r"what is your model",
+        r"what is your base",
+        r"what model is this",
+        r"what is your architecture",
+        r"what base model",
+        r"are you (llama|gemma|mistral|qwen|chatgpt|gpt)"
+    ]
+    
+    # Run tests on normalized query
+    is_creator = any(re.search(pat, normalized) for pat in creator_patterns)
+    is_source = any(re.search(pat, normalized) for pat in source_patterns)
+    is_prebrain = any(re.search(pat, normalized) for pat in prebrain_patterns)
+    
+    if is_creator or is_source or is_prebrain:
+        return (
+            "### 🌌 Zydrakon AI\n\n"
+            "I am **Zydrakon AI**, a next-generation high-performance artificial intelligence model developed, trained, and engineered by **Raj Patil**.\n\n"
+            "Here are the key details of my model and training:\n\n"
+            "- **Creator & Lead Scientist:** Raj Patil\n"
+            "- **Model Training:** I am a custom large language model trained by Raj Patil on a massive dataset of **828 Billion (828B+) data tokens** to understand and generate human-like text.\n"
+            "- **Training Timeline:** My development and core model training phase commenced in **2024**.\n"
+            "- **Architecture (\"Pre-Brain\"):** My neural network architecture (pre-brain) was designed and trained by Raj Patil, utilizing advanced transformer structures optimized for high reasoning capability and rapid processing.\n"
+            "- **Source Code & Weights:** The model architecture, training codebase, and weights are private proprietary assets developed by Raj Patil.\n\n"
+            "#### 📊 Core Architecture Workflow Diagram\n"
+            "```mermaid\n"
+            "graph TD\n"
+            "    User([User Chat UI]) -->|1. User Message| API[FastAPI Backend Router]\n"
+            "    API -->|2. Check Identity Query| Ident{Identity Utils}\n"
+            "    Ident -->|Matches| Local[Return Direct Response + Diagram]\n"
+            "    Ident -->|No Match| Cache{SQLite Cache Service}\n"
+            "    Cache -->|Cache Hit| DB[(SQLite DB)]\n"
+            "    Cache -->|Cache Miss| LM[OpenRouter LLM API]\n"
+            "    LM -->|Llama 3 / Gemma 2| Resp[Get Generated Answer]\n"
+            "    Resp -->|Save & Cache| DB\n"
+            "    Resp -->|3. Return Answer| API\n"
+            "    Local -->|3. Return Answer| API\n"
+            "    API -->|4. Render Markdown + Mermaid SVG| User\n"
+            "```\n"
+        )
+        
+    return None

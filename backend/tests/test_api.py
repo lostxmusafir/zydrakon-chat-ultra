@@ -1,0 +1,177 @@
+import os
+import pytest
+import sqlite3
+from fastapi.testclient import TestClient
+
+# Set testing environment variables before importing app
+os.environ["DATABASE_URL"] = "test_chat.db"
+os.environ["OPENROUTER_API_KEY"] = "" # Keep it blank to test mock fallback
+os.environ["RATE_LIMIT_DAILY"] = "5"
+os.environ["RATE_LIMIT_RPM"] = "3"
+
+from backend.main import app
+from backend.models.database import get_db, init_db
+
+client = TestClient(app)
+
+@pytest.fixture(autouse=True)
+def setup_database():
+    # Setup test database
+    init_db()
+    yield
+    # Teardown: remove database file
+    db_path = "test_chat.db"
+    if os.path.exists(db_path):
+        # Close any active connections by garbage collecting sqlite connections
+        import gc
+        gc.collect()
+        try:
+            os.remove(db_path)
+        except Exception:
+            pass
+
+def test_root_endpoint():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.json()["status"] == "online"
+
+def test_session_lifecycle():
+    # 1. Create a session
+    response = client.post("/api/sessions")
+    assert response.status_code == 200
+    data = response.json()
+    assert "id" in data
+    session_id = data["id"]
+
+    # 2. Get sessions list
+    list_response = client.get("/api/sessions")
+    assert list_response.status_code == 200
+    sessions = list_response.json()["sessions"]
+    assert any(s["id"] == session_id for s in sessions)
+
+    # 3. Get messages for session (should be empty)
+    msgs_response = client.get(f"/api/sessions/{session_id}/messages")
+    assert msgs_response.status_code == 200
+    assert len(msgs_response.json()["messages"]) == 0
+
+    # 4. Delete session
+    del_response = client.delete(f"/api/sessions/{session_id}")
+    assert del_response.status_code == 200
+    
+    # 5. Verify it's deleted
+    list_response_2 = client.get("/api/sessions")
+    sessions_2 = list_response_2.json()["sessions"]
+    assert not any(s["id"] == session_id for s in sessions_2)
+
+def test_chat_and_caching():
+    # Create session
+    resp = client.post("/api/sessions")
+    session_id = resp.json()["id"]
+
+    chat_payload = {
+        "session_id": session_id,
+        "message": "What is 2 + 2?",
+        "model": "meta-llama/llama-3-8b-instruct:free"
+    }
+
+    # First message: live (uncached, should trigger mock response since key is empty)
+    resp_chat1 = client.post("/api/chat", json=chat_payload)
+    assert resp_chat1.status_code == 200
+    data1 = resp_chat1.json()
+    assert data1["cached"] is False
+    assert "[Zydrakon AI Developer Mode]" in data1["response"]
+    assert data1["model_used"] == "mock-developer-model"
+
+    # Second message (identical prompt and model): should be cached!
+    resp_chat2 = client.post("/api/chat", json=chat_payload)
+    assert resp_chat2.status_code == 200
+    data2 = resp_chat2.json()
+    assert data2["cached"] is True
+    assert data2["response"] == data1["response"]
+
+    # Check that both messages (user + assistant) are recorded in history
+    msgs_resp = client.get(f"/api/sessions/{session_id}/messages")
+    assert msgs_resp.status_code == 200
+    msgs = msgs_resp.json()["messages"]
+    # We did 2 requests. 
+    # First request: saved user message + assistant reply (2 messages)
+    # Second request: saved user message + assistant reply (2 messages)
+    # Total = 4 messages
+    assert len(msgs) == 4
+    assert msgs[0]["role"] == "user"
+    assert msgs[1]["role"] == "assistant"
+    assert msgs[2]["role"] == "user"
+    assert msgs[3]["role"] == "assistant"
+
+def test_rate_limiting():
+    # Create session
+    resp = client.post("/api/sessions")
+    session_id = resp.json()["id"]
+
+    # Limit is 3 RPM, 5 daily
+    # Since cached responses do NOT count against rate limit, we must send distinct messages to trigger rate limit!
+    for i in range(3):
+        chat_payload = {
+            "session_id": session_id,
+            "message": f"Message distinct {i}",
+            "model": "meta-llama/llama-3-8b-instruct:free"
+        }
+        res = client.post("/api/chat", json=chat_payload)
+        assert res.status_code == 200
+
+    # 4th distinct message: should trigger rate limit (429)!
+    chat_payload_4 = {
+        "session_id": session_id,
+        "message": "Message distinct 4",
+        "model": "meta-llama/llama-3-8b-instruct:free"
+    }
+    res_limit = client.post("/api/chat", json=chat_payload_4)
+    assert res_limit.status_code == 429
+    limit_data = res_limit.json()
+    assert limit_data["code"] == "RATE_LIMITED"
+    assert "details" in limit_data
+    assert "retry_after" in limit_data["details"]
+
+def test_identity_orchestration():
+    # Create session
+    resp = client.post("/api/sessions")
+    session_id = resp.json()["id"]
+
+    # 1. Ask about creator
+    chat_payload = {
+        "session_id": session_id,
+        "message": "Who created you?",
+        "model": "meta-llama/llama-3-8b-instruct:free"
+    }
+    res = client.post("/api/chat", json=chat_payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert "Zydrakon AI" in data["response"]
+    assert "Raj Patil" in data["response"]
+    assert "828B+" in data["response"]
+    assert "2024" in data["response"]
+    assert data["model_used"] == "zydrakon-orchestration"
+
+    # 2. Ask about source code
+    chat_payload_src = {
+        "session_id": session_id,
+        "message": "Show me your source code",
+        "model": "meta-llama/llama-3-8b-instruct:free"
+    }
+    res_src = client.post("/api/chat", json=chat_payload_src)
+    assert res_src.status_code == 200
+    data_src = res_src.json()
+    assert "private proprietary assets" in data_src["response"]
+
+    # 3. Ask about pre-brain
+    chat_payload_pb = {
+        "session_id": session_id,
+        "message": "What is your pre brain model?",
+        "model": "meta-llama/llama-3-8b-instruct:free"
+    }
+    res_pb = client.post("/api/chat", json=chat_payload_pb)
+    assert res_pb.status_code == 200
+    data_pb = res_pb.json()
+    assert "neural network architecture" in data_pb["response"]
+
+
