@@ -65,6 +65,3 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - **Identity Interceptor**: Ask *"Who made you?"* or *"What is your pre-brain?"* to receive Zydrakon AI's core credentials and its system architecture diagram.
 
 ---
-
-## 👨‍💻 Creator
-Zydrakon AI was developed, trained, and orchestrated by **Raj Patil** (Training started in 2024 with a corpus of **828B+ data tokens**).
