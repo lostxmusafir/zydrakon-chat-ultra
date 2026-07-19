@@ -149,6 +149,18 @@ export default function Home() {
     }
   }, [inputText]);
 
+  // Auto-focus input when AI finishes responding, when switching sessions, or when starting new chat
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      const timer = setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+        }
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, isAuthenticated, activeSessionId, messages.length]);
+
   // Advance loading phase while AI is responding
   useEffect(() => {
     if (!isLoading) {
@@ -207,6 +219,7 @@ export default function Home() {
       setRateLimitError(null);
       setInputText("");
       if (textareaRef.current) textareaRef.current.style.height = "auto";
+      setTimeout(() => textareaRef.current?.focus(), 60);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to create new session";
       setError(msg);
@@ -240,6 +253,7 @@ export default function Home() {
     try {
       const msgs = await api.getSessionMessages(sessionId);
       setMessages(msgs);
+      setTimeout(() => textareaRef.current?.focus(), 60);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to load messages";
       setError(msg);
@@ -303,6 +317,11 @@ export default function Home() {
       }
     } finally {
       setIsLoading(false);
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+        }
+      }, 60);
     }
   };
 
@@ -318,6 +337,7 @@ export default function Home() {
   const handleSelectAgent = (agentId: string) => {
     setSelectedAgentId(agentId);
     localStorage.setItem("zydrakon_agent", agentId);
+    setTimeout(() => textareaRef.current?.focus(), 60);
   };
 
   const handleToggleThinkingMode = () => {
@@ -326,13 +346,16 @@ export default function Home() {
     if (nextVal && selectedModel === "zydrakon-free") {
       setSelectedModel("zhipu-free"); // Switch to Gold automatically
     }
+    setTimeout(() => textareaRef.current?.focus(), 60);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Enter key submits the text, Shift+Enter adds newline
-    if (e.key === "Enter" && !e.shiftKey) {
+    // Enter key submits the text (without Shift), Shift+Enter adds newline
+    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
-      handleSend();
+      if (!isLoading && inputText.trim()) {
+        handleSend();
+      }
     }
   };
 
@@ -858,7 +881,10 @@ export default function Home() {
                   ].map((prompt, idx) => (
                     <button
                       key={idx}
-                      onClick={() => setInputText(prompt)}
+                      onClick={() => {
+                        setInputText(prompt);
+                        setTimeout(() => textareaRef.current?.focus(), 60);
+                      }}
                       className="flex items-center justify-between text-left p-3.5 bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-[var(--accent-color)]/40 rounded-xl hover:bg-[#eae8e2]/50 dark:hover:bg-[#252522]/50 text-xs md:text-sm text-[var(--text-secondary)] hover:text-[var(--text-main)] transition-all shadow-sm"
                     >
                       <span className="line-clamp-2 pr-2 leading-relaxed">{prompt}</span>
