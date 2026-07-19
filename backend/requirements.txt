@@ -10,3 +10,4 @@ pymongo[srv]
 certifi
 PyJWT
 passlib[bcrypt]
+bcrypt<5
