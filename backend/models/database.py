@@ -31,15 +31,20 @@ def init_db():
             idx_name = f"{field_name}_1"
             try:
                 db[col_name].create_index(field_name, expireAfterSeconds=expire_secs)
-            except pymongo.errors.IndexOptionsConflict:
-                try:
-                    db[col_name].drop_index(idx_name)
-                    db[col_name].create_index(field_name, expireAfterSeconds=expire_secs)
-                    logging.info(f"Re-created conflicting TTL index '{idx_name}' on collection '{col_name}' with {expire_secs}s expiration.")
-                except Exception as drop_err:
-                    logging.error(f"Failed to drop/recreate conflicting index '{idx_name}': {str(drop_err)}")
+            except pymongo.errors.OperationFailure as e:
+                # Code 85 is IndexOptionsConflict (IndexOptionsConflict)
+                if e.code == 85:
+                    try:
+                        db[col_name].drop_index(idx_name)
+                        db[col_name].create_index(field_name, expireAfterSeconds=expire_secs)
+                        logging.info(f"Re-created conflicting TTL index '{idx_name}' on collection '{col_name}' with {expire_secs}s expiration.")
+                    except Exception as drop_err:
+                        logging.error(f"Failed to drop/recreate conflicting index '{idx_name}': {str(drop_err)}")
+                else:
+                    logging.error(f"Failed to create TTL index on {col_name}.{field_name}: {str(e)}")
             except Exception as idx_err:
                 logging.error(f"Failed to create TTL index on {col_name}.{field_name}: {str(idx_err)}")
+
         
         # Normal Indexes for querying
         db.messages.create_index("session_id")
