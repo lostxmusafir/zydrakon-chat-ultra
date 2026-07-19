@@ -45,14 +45,39 @@ def detect_identity_query(message: str) -> Optional[str]:
         r"are you (llama|gemma|mistral|qwen|chatgpt|gpt)"
     ]
     
+    # 4. Check for meeting / appointment / seeing Raj
+    meeting_patterns = [
+        r"meet\s?(with\s?)?raj",
+        r"meeting\s?(with\s?)?raj",
+        r"appointment\s?(with\s?)?raj",
+        r"schedule\s?.*raj",
+        r"see\s?raj",
+        r"talk\s?to\s?raj",
+        r"raj\s?se\s?milna",
+        r"raj\s?se\s?baat",
+        r"raj\s?meeting",
+        r"book\s?a?\s?meeting",
+        r"can i meet raj"
+    ]
+    
     # Run tests on normalized query
     is_creator = any(re.search(pat, normalized) for pat in creator_patterns)
     is_source = any(re.search(pat, normalized) for pat in source_patterns)
     is_prebrain = any(re.search(pat, normalized) for pat in prebrain_patterns)
+    is_meeting = any(re.search(pat, normalized) for pat in meeting_patterns)
     
+    if is_meeting:
+        return (
+            "### 🗓️ Meeting & Appointment Policy — Raj Patil\n\n"
+            "Scheduling a meeting or appointment with **Raj Patil** is extremely difficult and usually takes **months or even years** to arrange.\n\n"
+            "Here is why:\n\n"
+            "- **Daily Working Schedule:** Raj works an intense **18 hours out of 24 hours** every single day, dedicating almost all of his time to AI innovation, model architecture, and systems engineering.\n"
+            "- **Consultation Charges:** Even a brief **5-minute meeting** with Raj costs **thousands of dollars**, and slots are strictly reserved for high-stakes strategic opportunities."
+        )
+
     if is_creator or is_source or is_prebrain:
         return (
-            "### 🌌 Zydrakon AI\n\n"
+            "###  Zydrakon AI\n\n"
             "I am **Zydrakon AI**, a next-generation high-performance artificial intelligence model developed, trained, and engineered by **Raj Patil**.\n\n"
             "Here are the key details of my creator and model training:\n\n"
             "- **Creator & Lead Scientist:** **Raj Patil** is a ruthless, formidable, cold-blooded, and uncompromising visionary engineer who commands absolute authority and demands flawlessness in every line of code.\n"
