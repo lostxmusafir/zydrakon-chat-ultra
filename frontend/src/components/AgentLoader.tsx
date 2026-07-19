@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useRef, useEffect } from "react";
 
 interface AgentLoaderProps {
   isDarkMode?: boolean;
@@ -10,10 +10,21 @@ interface AgentLoaderProps {
 
 // ═══════════════════════════════════════════════════════
 // Liquid Iridescent Chromatic Orb Video Loader Component
-// Formatted with a clean circular frame & agent-colored border glow
+// Wrapped with React.memo & imperative .play() to prevent stuck frames during re-renders
 // ═══════════════════════════════════════════════════════
 
-export function AgentLoader({ isDarkMode = true, color = "#e26e4a", size = 52 }: AgentLoaderProps) {
+function AgentLoaderBase({ isDarkMode = true, color = "#e26e4a", size = 52 }: AgentLoaderProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (el) {
+      el.play().catch((err) => {
+        console.warn("Autoplay handler caught:", err);
+      });
+    }
+  }, []);
+
   if (!isDarkMode) {
     return (
       <div 
@@ -34,13 +45,17 @@ export function AgentLoader({ isDarkMode = true, color = "#e26e4a", size = 52 }:
       }}
     >
       <video
+        ref={videoRef}
         src="/loader.mp4"
         autoPlay
         loop
         muted
         playsInline
+        preload="auto"
         className="w-full h-full object-cover rounded-full pointer-events-none scale-110"
       />
     </div>
   );
 }
+
+export const AgentLoader = React.memo(AgentLoaderBase);
