@@ -38,12 +38,10 @@ def startup_event():
     init_db()
     logger.info("Zydrakon AI Database initialized successfully!")
 
-@app.get("/")
-@app.head("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def read_root():
     return {"status": "ok", "message": "Backend running"}
 
-@app.get("/health")
-@app.head("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health_check():
     return {"status": "ok", "message": "Backend running"}
