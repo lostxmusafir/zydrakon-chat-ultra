@@ -32,6 +32,15 @@ async def chat(chat_request: ChatRequest, request: Request, user: dict = Depends
     if chat_request.thinking and model_used == "zydrakon-free":
         model_used = "zhipu-free"
 
+    # Enforce User Allowed Models (Gold free tier model restrictions)
+    allowed_models = user.get("allowed_models")
+    if allowed_models and isinstance(allowed_models, list):
+        if model_used not in allowed_models and model_used != "zydrakon-orchestration":
+            if "zhipu-free" in allowed_models:
+                model_used = "zhipu-free"
+            else:
+                model_used = "zydrakon-free"
+
     # Verify if session exists and belongs to user
     db = get_db()
     if not db.sessions.find_one({"id": session_id, "user_id": user["id"]}):
