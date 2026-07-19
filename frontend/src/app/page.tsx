@@ -745,7 +745,7 @@ export default function Home() {
                       disabled={isDisabled}
                       className="bg-[var(--bg-main)] text-[var(--text-main)] font-sans disabled:opacity-40"
                     >
-                      {isLockedForUser ? "🔒 " : ""}{m.name}{isLockedForUser ? " (Locked for Gold/Free Tier)" : isDisabledByDeepResearch ? " (Not supported for Deep Research)" : ""}
+                      {isLockedForUser ? "🔒 " : ""}{m.name}{isLockedForUser ? " (Locked)" : isDisabledByDeepResearch ? " (Not supported for Deep Research)" : ""}
                     </option>
                   );
                 })}
