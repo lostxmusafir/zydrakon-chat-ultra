@@ -48,7 +48,12 @@ def setup_database():
 def test_root_endpoint():
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json()["status"] == "online"
+    assert response.json() == {"status": "ok", "message": "Backend running"}
+
+def test_health_endpoint():
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok", "message": "Backend running"}
 
 def test_session_lifecycle():
     # 1. Create a session

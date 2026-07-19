@@ -39,9 +39,11 @@ def startup_event():
     logger.info("Zydrakon AI Database initialized successfully!")
 
 @app.get("/")
+@app.head("/")
 def read_root():
-    return {
-        "status": "online",
-        "service": "Zydrakon AI Chatbot API",
-        "description": "FastAPI Backend is running and ready to handle chat requests."
-    }
+    return {"status": "ok", "message": "Backend running"}
+
+@app.get("/health")
+@app.head("/health")
+def health_check():
+    return {"status": "ok", "message": "Backend running"}
