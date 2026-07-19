@@ -722,21 +722,24 @@ export default function Home() {
             </div>
 
             {/* Active Agent Badge */}
-            {activeAgent.id !== "general-assistant" && (
-              <button
-                onClick={() => setShowAgentsPanel(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-all hover:opacity-80 cursor-pointer"
-                style={{
-                  borderColor: `${activeAgent.color}40`,
-                  color: activeAgent.color,
-                  backgroundColor: `${activeAgent.color}10`,
-                }}
-                title={`Active agent: ${activeAgent.name}`}
-              >
-                <activeAgent.icon className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">{activeAgent.name}</span>
-              </button>
-            )}
+            {activeAgent.id !== "general-assistant" && (() => {
+              const ActiveAgentIcon = activeAgent.icon;
+              return (
+                <button
+                  onClick={() => setShowAgentsPanel(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-all hover:opacity-80 cursor-pointer"
+                  style={{
+                    borderColor: `${activeAgent.color}40`,
+                    color: activeAgent.color,
+                    backgroundColor: `${activeAgent.color}10`,
+                  }}
+                  title={`Active agent: ${activeAgent.name}`}
+                >
+                  <ActiveAgentIcon className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">{activeAgent.name}</span>
+                </button>
+              );
+            })()}
           </div>
 
           <div className="flex items-center gap-4">
