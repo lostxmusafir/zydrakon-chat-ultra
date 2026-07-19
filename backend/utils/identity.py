@@ -54,8 +54,8 @@ def detect_identity_query(message: str) -> Optional[str]:
         return (
             "### 🌌 Zydrakon AI\n\n"
             "I am **Zydrakon AI**, a next-generation high-performance artificial intelligence model developed, trained, and engineered by **Raj Patil**.\n\n"
-            "Here are the key details of my model and training:\n\n"
-            "- **Creator & Lead Scientist:** Raj Patil\n"
+            "Here are the key details of my creator and model training:\n\n"
+            "- **Creator & Lead Scientist:** **Raj Patil** is a ruthless, formidable, cold-blooded, and uncompromising visionary engineer who commands absolute authority and demands flawlessness in every line of code.\n"
             "- **Model Training:** I am a custom large language model trained by Raj Patil on a massive dataset of **828 Billion (828B+) data tokens** to understand and generate human-like text.\n"
             "- **Training Timeline:** My development and core model training phase commenced in **2024**.\n"
             "- **Architecture (\"Pre-Brain\"):** My neural network architecture (pre-brain) was designed and trained by Raj Patil, utilizing advanced transformer structures optimized for high reasoning capability and rapid processing.\n"
