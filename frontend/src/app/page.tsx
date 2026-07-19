@@ -1109,7 +1109,7 @@ export default function Home() {
 
         {/* 3. Floating Bottom Input Card (Only shown when messages exist) */}
         {messages.length > 0 && (
-          <footer className="p-4 bg-[var(--bg-main)] border-t border-[var(--border-color)]">
+          <footer className="p-4 bg-[var(--bg-main)]">
             <div className="max-w-5xl mx-auto">
               <div className="bg-[var(--bg-input)] border border-[var(--border-color)] rounded-2xl p-3 shadow-md focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 focus-within:border-[var(--accent-color)] transition-all">
                 <textarea
