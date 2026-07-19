@@ -974,14 +974,9 @@ export default function Home() {
 
                   return (
                     <div className="flex items-start gap-4 justify-start animate-message">
-                      {/* Fluid Iridescent Orb Video Loader */}
+                      {/* Fluid Iridescent Orb Video Loader (Dark Theme Only, No Borders) */}
                       <div className="relative flex-shrink-0 mt-0.5">
-                        <div className="w-14 h-14 rounded-full flex items-center justify-center border shadow-xl bg-black/60 overflow-hidden backdrop-blur-sm" style={{
-                          borderColor: `${activeAgent.color}30`,
-                          boxShadow: `0 4px 24px ${activeAgent.color}20, 0 0 40px ${activeAgent.color}10`,
-                        }}>
-                          <AgentLoader agentId={activeAgent.id} color={activeAgent.color} size={56} />
-                        </div>
+                        <AgentLoader isDarkMode={isDarkMode} size={52} />
                       </div>
 
                       <div className="flex flex-col gap-2.5 min-w-[260px] max-w-sm select-none">
