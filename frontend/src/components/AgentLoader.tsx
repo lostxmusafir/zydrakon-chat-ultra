@@ -10,7 +10,7 @@ interface AgentLoaderProps {
 
 // ═══════════════════════════════════════════════════════
 // Liquid Iridescent Chromatic Orb Video Loader Component
-// Wrapped with React.memo & imperative .play() to prevent stuck frames during re-renders
+// Full-size scaling & transparent screen blend with agent border glow
 // ═══════════════════════════════════════════════════════
 
 function AgentLoaderBase({ isDarkMode = true, color = "#e26e4a", size = 52 }: AgentLoaderProps) {
@@ -35,13 +35,13 @@ function AgentLoaderBase({ isDarkMode = true, color = "#e26e4a", size = 52 }: Ag
 
   return (
     <div 
-      className="relative flex items-center justify-center rounded-full overflow-hidden select-none shrink-0 border shadow-lg backdrop-blur-md"
+      className="relative flex items-center justify-center rounded-full overflow-hidden select-none shrink-0 border shadow-lg"
       style={{ 
         width: size, 
         height: size,
-        borderColor: `${color}45`,
-        backgroundColor: "#000000",
-        boxShadow: `0 0 20px ${color}25, 0 4px 16px rgba(0,0,0,0.5)`
+        borderColor: `${color}55`,
+        backgroundColor: "transparent",
+        boxShadow: `0 0 16px ${color}35, 0 2px 10px rgba(0,0,0,0.3)`
       }}
     >
       <video
@@ -52,7 +52,7 @@ function AgentLoaderBase({ isDarkMode = true, color = "#e26e4a", size = 52 }: Ag
         muted
         playsInline
         preload="auto"
-        className="w-full h-full object-cover rounded-full pointer-events-none scale-110"
+        className="w-full h-full object-cover rounded-full pointer-events-none mix-blend-screen scale-[1.75]"
       />
     </div>
   );
