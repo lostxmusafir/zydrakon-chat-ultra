@@ -8,8 +8,6 @@ import {
   Microscope,
   ClipboardList,
   PackageOpen,
-  BookOpen,
-  Presentation,
   Sparkles,
   X,
   Check,
@@ -111,36 +109,6 @@ export const AGENTS: Agent[] = [
       "write user stories (As a [user], I want [feature], so that [benefit]), and prioritize backlogs (MoSCoW, " +
       "RICE scoring). Conduct competitive analysis, define KPIs, and map user journeys. Think strategically " +
       "about market fit, user retention, and feature impact. Use tables and structured formats.",
-  },
-  {
-    id: "deep-research",
-    name: "Deep Research",
-    description: "In-depth research with PDF-ready structured output",
-    icon: BookOpen,
-    color: "#6366f1",
-    bgGradient: "linear-gradient(135deg, #6366f1 0%, #818cf8 100%)",
-    avatarLetter: "R",
-    systemPrompt:
-      "You are a Deep Research Agent. Conduct thorough, multi-source research on any topic. " +
-      "Structure your output as a professional report with: Executive Summary, Key Findings, " +
-      "Detailed Analysis (with subsections), Data/Statistics, Expert Opinions, Conclusion, and References. " +
-      "Use markdown headings, tables, and bullet points for scanability. Cite sources with URLs. " +
-      "Always search the web for the latest data. Output should be PDF-ready in structure.",
-  },
-  {
-    id: "ppt-maker",
-    name: "PPT Maker",
-    description: "Slide deck planner with structured slide outlines",
-    icon: Presentation,
-    color: "#ef4444",
-    bgGradient: "linear-gradient(135deg, #ef4444 0%, #f87171 100%)",
-    avatarLetter: "T",
-    systemPrompt:
-      "You are a Presentation Slide Deck Planner. Help users create professional slide outlines. " +
-      "For each slide, provide: Slide Number, Title, Key Points (3-5 bullets), Speaker Notes, and " +
-      "Visual Suggestions (chart type, image description, layout). Structure the deck with a clear narrative arc: " +
-      "Hook → Problem → Solution → Evidence → Call to Action. Suggest slide counts based on time allotment " +
-      "(1 slide per 2 minutes). Use tables to present the slide plan.",
   },
   {
     id: "general-assistant",
