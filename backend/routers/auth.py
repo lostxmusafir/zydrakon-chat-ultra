@@ -21,6 +21,41 @@ class StatusResponse(BaseModel):
     status: str
     message: str
 
+@router.post("/seed")
+async def seed_test_users():
+    """Seed administrator & test user accounts into MongoDB with bcrypt passwords."""
+    db = get_db()
+    test_accounts = [
+        {
+            "email": "admin@zydrakon.ai",
+            "password": "admin123password",
+            "name": "Admin User"
+        },
+        {
+            "email": "user@zydrakon.ai",
+            "password": "user123password",
+            "name": "Test User"
+        }
+    ]
+    created = []
+    for acc in test_accounts:
+        email = acc["email"].strip().lower()
+        hashed = get_password_hash(acc["password"])
+        user_doc = {
+            "id": f"user-{uuid.uuid4().hex[:8]}",
+            "email": email,
+            "name": acc["name"],
+            "hashed_password": hashed,
+            "created_at": datetime.utcnow().isoformat()
+        }
+        db.users.update_one(
+            {"email": email},
+            {"$set": user_doc},
+            upsert=True
+        )
+        created.append({"email": email, "password": acc["password"], "name": acc["name"]})
+    return {"status": "success", "accounts": created}
+
 @router.post("/register")
 async def register():
     """Public sign-up is disabled."""
