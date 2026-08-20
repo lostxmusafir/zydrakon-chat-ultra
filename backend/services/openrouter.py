@@ -10,9 +10,10 @@ logger = logging.getLogger(__name__)
 # List of robust free models to choose from/fallback to
 FREE_MODELS = [
     "z-ai/glm-5.2:free",
+    "openai/gpt-oss-20b:free",
+    "nvidia/nemotron-nano-12b-2-vl:free",
     "deepseek/deepseek-v4-flash",
-    "poolside/laguna-m.1:free",
-    "nvidia/nemotron-3-ultra-550b-a55b:free"
+    "poolside/laguna-m.1:free"
 ]
 
 class OpenRouterClient:
@@ -30,9 +31,10 @@ class OpenRouterClient:
         self.openrouter_model_index = 0
         self.openrouter_models = [
             "z-ai/glm-5.2:free",
+            "openai/gpt-oss-20b:free",
+            "nvidia/nemotron-nano-12b-2-vl:free",
             "deepseek/deepseek-v4-flash",
-            "poolside/laguna-m.1:free",
-            "nvidia/nemotron-3-ultra-550b-a55b:free"
+            "poolside/laguna-m.1:free"
         ]
 
     def _get_next_mistral_model(self) -> str:
@@ -300,13 +302,28 @@ class OpenRouterClient:
             selected_model = self._get_next_openrouter_model()
             logger.info(f"Attempting Premium Tier call to OpenRouter using model: {selected_model} and rotating key: {api_key[:12] if api_key else 'None'}...")
             if api_key:
+                # 1. Try selected primary round-robin model
                 try:
                     content = self._call_provider_api("OpenRouter", self.api_url, api_key, selected_model, messages_payload)
                     return content, selected_model, search_query_used, search_results_list
                 except Exception as e:
                     logger.error(f"Premium Tier OpenRouter call failed for {selected_model}: {str(e)}")
                     last_error = f"OpenRouter ({selected_model}) error: {str(e)}"
-                    # Fallback directly to openrouter/free auto-routing model
+                    
+                    # 2. Iterate through all alternate OpenRouter models in pool to bypass 429 Rate Limit Exceeded
+                    for alt_model in self.openrouter_models:
+                        if alt_model == selected_model:
+                            continue
+                        logger.info(f"Attempting OpenRouter failover to alternate model: {alt_model}...")
+                        try:
+                            alt_key = self._get_next_api_key() or api_key
+                            content = self._call_provider_api("OpenRouter", self.api_url, alt_key, alt_model, messages_payload)
+                            return content, alt_model, search_query_used, search_results_list
+                        except Exception as alt_err:
+                            logger.error(f"OpenRouter failover failed for {alt_model}: {str(alt_err)}")
+                            last_error = f"OpenRouter failover ({alt_model}) error: {str(alt_err)}"
+
+                    # 3. Try openrouter/free auto-router
                     logger.info("Attempting Premium Tier fallback call to OpenRouter using auto-router model: openrouter/free...")
                     try:
                         content = self._call_provider_api("OpenRouter", self.api_url, api_key, "openrouter/free", messages_payload)
