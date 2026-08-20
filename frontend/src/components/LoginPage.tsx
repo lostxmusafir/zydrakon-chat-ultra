@@ -62,9 +62,8 @@ export function LoginPage({ onSuccess, onContinueGuest }: LoginPageProps) {
 
         {/* Center Headline & Dragon Artwork */}
         <div className="my-auto space-y-8 py-6 max-w-lg">
-          <div className="relative inline-block">
-            <div className="absolute -inset-4 rounded-full bg-orange-500/20 blur-2xl pointer-events-none" />
-            <ZydrakonLogo size={160} className="relative drop-shadow-[0_0_40px_rgba(249,115,22,0.4)]" />
+          <div>
+            <ZydrakonLogo size={240} />
           </div>
 
           <div className="space-y-3">
