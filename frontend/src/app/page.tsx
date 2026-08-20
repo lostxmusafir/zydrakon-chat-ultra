@@ -377,7 +377,7 @@ function formatMarkdownInline(text: string): React.ReactNode {
     }
     if (part.startsWith("`") && part.endsWith("`") && part.length >= 2) {
       return (
-        <code key={idx} className="px-1.5 py-0.5 rounded bg-zinc-800 text-orange-400 font-mono text-xs border border-zinc-700/60">
+        <code key={idx} className="px-1.5 py-0.5 rounded bg-zinc-800 text-orange-400 font-mono text-sm md:text-base border border-zinc-700/60">
           {part.slice(1, -1)}
         </code>
       );
@@ -445,7 +445,7 @@ function formatMarkdownInline(text: string): React.ReactNode {
 
             elements.push(
               <div key={`table-${i}`} className="my-4 overflow-x-auto rounded-xl border border-zinc-800 bg-[#09090b] shadow-md scrollbar-thin select-text">
-                <table className="w-full text-left text-xs text-zinc-200 border-collapse">
+                <table className="w-full text-left text-sm md:text-base text-zinc-200 border-collapse">
                   <thead className="bg-[#121215] text-white border-b border-zinc-800 uppercase tracking-wider font-semibold">
                     <tr>
                       {headerRow.map((cell, cIdx) => (
@@ -474,7 +474,7 @@ function formatMarkdownInline(text: string): React.ReactNode {
         }
 
         if (!trimmed) {
-          elements.push(<div key={i} className="h-1" />);
+          elements.push(<div key={i} className="h-1.5" />);
           i++;
           continue;
         }
@@ -485,11 +485,11 @@ function formatMarkdownInline(text: string): React.ReactNode {
           const level = headerMatch[1].length;
           const text = headerMatch[2];
           if (level === 1) {
-            elements.push(<h1 key={i} className="text-xl font-bold text-orange-400 mt-3 mb-1">{formatMarkdownInline(text)}</h1>);
+            elements.push(<h1 key={i} className="text-2xl md:text-3xl font-bold text-orange-400 mt-4 mb-2">{formatMarkdownInline(text)}</h1>);
           } else if (level === 2) {
-            elements.push(<h2 key={i} className="text-lg font-semibold text-white mt-2 mb-1">{formatMarkdownInline(text)}</h2>);
+            elements.push(<h2 key={i} className="text-xl md:text-2xl font-bold text-white mt-4 mb-2">{formatMarkdownInline(text)}</h2>);
           } else {
-            elements.push(<h3 key={i} className="text-sm font-bold text-zinc-100 mt-2 mb-1">{formatMarkdownInline(text)}</h3>);
+            elements.push(<h3 key={i} className="text-base md:text-lg font-bold text-zinc-100 mt-3 mb-1.5">{formatMarkdownInline(text)}</h3>);
           }
           i++;
           continue;
@@ -498,7 +498,7 @@ function formatMarkdownInline(text: string): React.ReactNode {
         // Bullet List items
         if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
           elements.push(
-            <li key={i} className="text-sm leading-relaxed text-zinc-200 ml-4 list-disc">
+            <li key={i} className="text-base md:text-lg leading-relaxed text-zinc-200 ml-5 list-disc">
               {formatMarkdownInline(trimmed.slice(2))}
             </li>
           );
@@ -508,14 +508,14 @@ function formatMarkdownInline(text: string): React.ReactNode {
 
         // Normal text paragraph
         elements.push(
-          <p key={i} className="text-sm leading-relaxed text-zinc-200">
+          <p key={i} className="text-base md:text-lg leading-relaxed text-zinc-200">
             {formatMarkdownInline(line)}
           </p>
         );
         i++;
       }
 
-      return <div key={index} className="space-y-2">{elements}</div>;
+      return <div key={index} className="space-y-3">{elements}</div>;
     });
   };
 
@@ -785,14 +785,14 @@ function formatMarkdownInline(text: string): React.ReactNode {
                     } animate-message`}
                   >
                     <div className="flex items-center gap-2 mb-1.5 px-1">
-                      <span className="text-[11px] font-semibold text-zinc-400">
+                      <span className="text-xs md:text-sm font-semibold text-zinc-300">
                         {msg.role === "user" ? "You" : activeAgent.name}
                       </span>
-                      <span className="text-[10px] text-zinc-600">{msg.timestamp}</span>
+                      <span className="text-xs text-zinc-500">{msg.timestamp}</span>
                     </div>
 
                     <div
-                      className={`text-sm leading-relaxed ${
+                      className={`text-base md:text-lg leading-relaxed ${
                         msg.role === "user"
                           ? "max-w-[85%] md:max-w-[75%] bg-zinc-900 text-zinc-100 border border-zinc-800 rounded-2xl p-4 shadow-sm"
                           : "w-full max-w-none bg-transparent text-zinc-100 p-0 shadow-none border-none"
@@ -800,7 +800,7 @@ function formatMarkdownInline(text: string): React.ReactNode {
                     >
                       {/* Search Query Pill */}
                       {msg.search_query && (
-                        <div className="mb-3 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800/80 text-xs text-orange-400">
+                        <div className="mb-3 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800/80 text-xs md:text-sm text-orange-400">
                           <Globe className="w-3.5 h-3.5 shrink-0" />
                           <span>Searched: {msg.search_query}</span>
                         </div>
@@ -840,7 +840,7 @@ function formatMarkdownInline(text: string): React.ReactNode {
                     onKeyDown={handleKeyDown}
                     placeholder={`Ask ${activeAgent.name} anything... (Shift+Enter for new line)`}
                     rows={1}
-                    className="w-full px-3 py-2 bg-transparent text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none max-h-44 font-sans"
+                    className="w-full px-3 py-2 bg-transparent text-base md:text-lg text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none max-h-44 font-sans"
                   />
 
                   <button
