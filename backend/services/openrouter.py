@@ -389,10 +389,14 @@ class OpenRouterClient:
         return fallback_content, "mock-local-fallback", search_query_used, search_results_list
 
     def get_local_fallback_response(self, message: str) -> str:
-        msg_lower = message.lower()
+        msg_lower = message.lower().strip()
         
+        # 0. Simple greetings
+        if msg_lower in ["hi", "hello", "hey", "hlo", "namaste", "hi there", "hy", "hola"]:
+            return "Hello! I am Zydrakon AI. How can I assist you today?"
+
         # 1. HTTPS explanation request
-        if "https" in msg_lower:
+        if "explain https" in msg_lower or "how https works" in msg_lower or msg_lower == "https":
             return (
                 "### How HTTPS Works (Secure Communication)\n\n"
                 "**HTTPS (Hypertext Transfer Protocol Secure)** encrypts web traffic using **TLS/SSL** to ensure privacy, data integrity, and authentic server identity.\n\n"

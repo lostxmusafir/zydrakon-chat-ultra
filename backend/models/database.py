@@ -58,36 +58,11 @@ def init_db():
             
         db.rate_limits.create_index([("identifier", pymongo.ASCENDING), ("timestamp", pymongo.ASCENDING)])
         
-        # Seed default test accounts if not already present
+        # Flush any stale/corrupted cached responses
         try:
-            from backend.utils.auth import get_password_hash
-            import uuid
-            from datetime import datetime
-
-            test_accounts = [
-                {"email": "admin@zydrakon.ai", "password": "admin123password", "name": "Admin User"},
-                {"email": "user@zydrakon.ai", "password": "user123password", "name": "Test User"},
-                {"email": "test@zydrakon.ai", "password": "test123password", "name": "Test Account"}
-            ]
-            for acc in test_accounts:
-                email = acc["email"].strip().lower()
-                hashed = get_password_hash(acc["password"])
-                user_doc = {
-                    "id": f"user-{uuid.uuid4().hex[:8]}",
-                    "email": email,
-                    "name": acc["name"],
-                    "hashed_password": hashed,
-                    "created_at": datetime.utcnow().isoformat()
-                }
-                db.users.update_one(
-                    {"email": email},
-                    {"$set": user_doc},
-                    upsert=True
-                )
-            logging.info("Default user accounts seeded successfully in MongoDB.")
-        except Exception as seed_err:
-            logging.warning(f"User account seeding warning: {str(seed_err)}")
-        
-        logging.info("MongoDB database initialized successfully.")
+            db.cached_responses.delete_many({})
+            logging.info("Flushed stale cached responses successfully.")
+        except Exception as cache_flush_err:
+            logging.warning(f"Cache flush warning: {str(cache_flush_err)}")
     except Exception as e:
         logging.error(f"Error initializing MongoDB: {str(e)}")
