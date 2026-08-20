@@ -181,15 +181,6 @@ export function LoginPage({ onSuccess, onContinueGuest }: LoginPageProps) {
           </div>
         </div>
 
-        {/* Right Bottom Footer */}
-        <div className="flex items-center justify-between text-xs text-zinc-400 font-medium pt-4 border-t border-zinc-100 max-w-md mx-auto w-full">
-          <span>© 2005-2026 Zydrakon Inc.</span>
-          <div className="flex items-center gap-4">
-            <span className="hover:text-zinc-600 cursor-pointer">Contact Us</span>
-            <span className="hover:text-zinc-600 cursor-pointer">English ⌄</span>
-          </div>
-        </div>
-
       </div>
 
     </div>
