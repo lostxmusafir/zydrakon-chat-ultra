@@ -829,10 +829,10 @@ function formatMarkdownInline(text: string): React.ReactNode {
               </div>
             </div>
 
-            {/* Chat Input Container */}
-            <div className="p-4 bg-[#09090b] border-t border-zinc-800/80">
-              <div className="max-w-4xl mx-auto flex flex-col gap-2">
-                <div className="relative flex items-end bg-zinc-950 border border-zinc-800/90 rounded-2xl p-2 focus-within:border-orange-500/60 focus-within:ring-1 focus-within:ring-orange-500/30 transition-all shadow-lg">
+            {/* Claude-Style Floating Chat Input Box */}
+            <div className="p-4 md:pb-6 bg-transparent flex flex-col items-center">
+              <div className="w-full max-w-4xl mx-auto flex flex-col gap-2">
+                <div className="relative flex items-end bg-[#09090b] border border-zinc-800/90 hover:border-zinc-700/80 rounded-3xl p-3 focus-within:border-orange-500/60 focus-within:ring-1 focus-within:ring-orange-500/30 transition-all shadow-2xl">
                   <textarea
                     ref={textareaRef}
                     value={inputText}
@@ -840,19 +840,19 @@ function formatMarkdownInline(text: string): React.ReactNode {
                     onKeyDown={handleKeyDown}
                     placeholder={`Ask ${activeAgent.name} anything... (Shift+Enter for new line)`}
                     rows={1}
-                    className="w-full px-3 py-2 bg-transparent text-base md:text-lg text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none max-h-44 font-sans"
+                    className="w-full px-3 py-1.5 bg-transparent text-base md:text-lg text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none max-h-48 font-sans"
                   />
 
                   <button
                     onClick={handleSendMessage}
                     disabled={!inputText.trim() || isLoading || isStreamingMsg}
-                    className="p-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white disabled:opacity-30 disabled:hover:bg-orange-600 transition-all shrink-0 cursor-pointer shadow-md shadow-orange-950/40"
+                    className="p-2.5 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white disabled:opacity-20 disabled:hover:bg-orange-600 transition-all shrink-0 cursor-pointer shadow-md shadow-orange-950/40 mb-0.5"
                   >
                     <Send className="w-4 h-4" />
                   </button>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] text-zinc-500 px-2">
+                <div className="flex items-center justify-between text-[11px] text-zinc-500 px-3">
                   <span>Press Enter to send message</span>
                   {limits && (
                     <span>
