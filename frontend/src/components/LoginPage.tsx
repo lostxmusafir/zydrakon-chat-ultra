@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { ZydrakonLogo } from "./ZydrakonLogo";
-import { Mail, Lock, User, ArrowRight, Loader2, ShieldCheck, Cpu, LogIn, Sparkles, CheckCircle2 } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, Loader2, ShieldCheck, Cpu, LogIn, Sparkles } from "lucide-react";
 import { api } from "@/lib/api";
 
 interface LoginPageProps {
@@ -61,87 +61,92 @@ export function LoginPage({ onSuccess, onContinueGuest }: LoginPageProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#000000] text-white flex flex-col lg:flex-row items-center justify-between p-6 lg:p-12 overflow-y-auto select-none">
+    <div className="fixed inset-0 z-50 bg-[#000000] text-white flex items-center justify-center p-4 md:p-8 overflow-y-auto select-none">
       {/* Background Cyber Grid Lines */}
       <div className="absolute inset-0 bg-[radial-gradient(#1f1f23_1px,transparent_1px)] [background-size:28px_28px] opacity-30 -z-10" />
 
-      {/* LEFT SIDE: Brand Showcase & Logo Artwork */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-between items-start h-full max-w-xl py-6 space-y-8 animate-fade-in">
-        {/* Brand Top Header */}
-        <div className="flex items-center gap-3">
-          <ZydrakonLogo size={44} className="drop-shadow-[0_0_12px_rgba(249,115,22,0.3)]" />
-          <div>
-            <span className="font-extrabold text-xl tracking-wider text-white block">ZYDRAKON AI</span>
-            <span className="text-[10px] text-zinc-500 font-mono tracking-widest uppercase block -mt-0.5">Pitch Black Ultra Studio</span>
-          </div>
-        </div>
+      {/* 2-SHAPE CONTAINER */}
+      <div className="w-full max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-stretch my-auto">
+        
+        {/* SHAPE 1: Left Brand Card */}
+        <div className="w-full bg-[#08080a] border border-zinc-800/90 rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col justify-between space-y-6 relative overflow-hidden">
+          {/* Subtle Glow */}
+          <div className="absolute -top-20 -left-20 w-48 h-48 rounded-full bg-orange-500/10 blur-3xl pointer-events-none" />
 
-        {/* Hero Section & Large Logo */}
-        <div className="flex flex-col items-start space-y-6 my-auto">
-          <div className="relative group cursor-pointer">
-            <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-orange-500/20 to-amber-500/10 blur-xl opacity-70 group-hover:opacity-100 transition-opacity" />
-            <ZydrakonLogo size={160} className="relative drop-shadow-[0_0_35px_rgba(249,115,22,0.35)]" />
-          </div>
-
-          <div className="space-y-2">
-            <h1 className="text-4xl lg:text-5xl font-black tracking-tight text-white">
-              Zydrakon AI
-            </h1>
-            <p className="text-sm text-zinc-400 font-medium max-w-md leading-relaxed">
-              Next-Generation AI Intelligence & Streaming Studio with Multi-LLM Round-Robin Engine
-            </p>
-          </div>
-
-          {/* High-Tech Feature Badges */}
-          <div className="flex flex-wrap gap-2.5 pt-2">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-950 border border-zinc-800 text-xs text-zinc-300">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Bcrypt Security Enforced</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-950 border border-zinc-800 text-xs text-zinc-300">
-              <Sparkles className="w-4 h-4 text-orange-400" />
-              <span>Multi-Model Rotation</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-950 border border-zinc-800 text-xs font-mono text-zinc-400">
-              <Cpu className="w-3.5 h-3.5 text-zinc-400 animate-pulse" />
-              <span>{BOOT_STEPS[bootIndex]}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Left Side Footer */}
-        <div className="text-xs text-zinc-500 font-mono space-y-1">
-          <p>© 2026 Zydrakon AI — All rights reserved</p>
-          <p>Created & Developed by <span className="text-zinc-300 font-semibold">Raj Patil</span></p>
-        </div>
-      </div>
-
-      {/* RIGHT SIDE: Login Card Scene (Image 2) */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center py-6">
-        <div className="w-full max-w-md bg-[#09090b] border border-zinc-800/90 rounded-3xl p-8 shadow-2xl space-y-6 relative overflow-hidden">
-          
-          {/* Card Header & Logo */}
-          <div className="flex flex-col items-center text-center space-y-3">
-            <ZydrakonLogo size={70} />
+          {/* Top Brand Header */}
+          <div className="flex items-center gap-3">
+            <ZydrakonLogo size={40} className="drop-shadow-[0_0_12px_rgba(249,115,22,0.3)]" />
             <div>
-              <h2 className="text-2xl font-extrabold text-white tracking-tight">
+              <span className="font-extrabold text-lg tracking-wider text-white block">ZYDRAKON AI</span>
+              <span className="text-[10px] text-zinc-500 font-mono tracking-widest uppercase block -mt-0.5">Pitch Black Ultra Studio</span>
+            </div>
+          </div>
+
+          {/* Center Content */}
+          <div className="flex flex-col items-center text-center space-y-4 my-auto">
+            <div className="relative group">
+              <div className="absolute -inset-3 rounded-full bg-orange-500/15 blur-xl opacity-70 group-hover:opacity-100 transition-opacity" />
+              <ZydrakonLogo size={130} className="relative drop-shadow-[0_0_25px_rgba(249,115,22,0.35)]" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                Zydrakon AI
+              </h1>
+              <p className="text-xs text-zinc-400 font-medium max-w-xs leading-relaxed">
+                Next-Generation AI Intelligence & Streaming Studio with Multi-LLM Round-Robin Engine
+              </p>
+            </div>
+
+            {/* Feature Pills */}
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-300">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Bcrypt Security Enforced</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-300">
+                <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+                <span>Multi-Model Rotation</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-950 border border-zinc-800 text-[11px] font-mono text-zinc-400">
+                <Cpu className="w-3 h-3 text-zinc-400 animate-pulse" />
+                <span>{BOOT_STEPS[bootIndex]}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Left Footer */}
+          <div className="pt-3 border-t border-zinc-800/60 flex items-center justify-between text-[11px] text-zinc-500 font-mono">
+            <span>© 2026 Zydrakon AI</span>
+            <span>By <strong className="text-zinc-300">Raj Patil</strong></span>
+          </div>
+        </div>
+
+        {/* SHAPE 2: Right Login Card */}
+        <div className="w-full bg-[#09090b] border border-zinc-800/90 rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col justify-between space-y-5 relative overflow-hidden">
+          
+          {/* Card Header */}
+          <div className="flex flex-col items-center text-center space-y-2.5">
+            <ZydrakonLogo size={64} />
+            <div>
+              <h2 className="text-xl md:text-2xl font-extrabold text-white tracking-tight">
                 Sign In to Zydrakon AI
               </h2>
-              <p className="text-xs text-zinc-400 mt-1">
+              <p className="text-xs text-zinc-400 mt-0.5">
                 Log in with your user credentials (bcrypt protected)
               </p>
             </div>
           </div>
 
           {/* Admin Notice */}
-          <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800/80 text-xs text-zinc-400 text-center flex items-center justify-center gap-2">
+          <div className="p-2.5 rounded-2xl bg-zinc-950 border border-zinc-800/80 text-[11px] text-zinc-400 text-center flex items-center justify-center gap-1.5">
             <Lock className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-            <span>Public sign-up is disabled. Accounts are managed by administrator.</span>
+            <span>Public sign-up is disabled. Accounts managed by administrator.</span>
           </div>
 
           {/* Error Alert */}
           {errorMsg && (
-            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+            <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
               <span>⚠️ {errorMsg}</span>
             </div>
           )}
@@ -149,13 +154,13 @@ export function LoginPage({ onSuccess, onContinueGuest }: LoginPageProps) {
           {/* Loading Overlay */}
           {isLoading && (
             <div className="absolute inset-0 bg-[#09090b]/95 backdrop-blur-sm z-20 flex flex-col items-center justify-center space-y-3">
-              <Loader2 className="w-10 h-10 text-orange-400 animate-spin" />
+              <Loader2 className="w-9 h-9 text-orange-400 animate-spin" />
               <p className="text-xs font-mono text-zinc-300 animate-pulse">{loadingText}</p>
             </div>
           )}
 
           {/* Form Inputs */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3.5">
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-zinc-300">Email Address</label>
               <div className="relative flex items-center">
@@ -188,7 +193,7 @@ export function LoginPage({ onSuccess, onContinueGuest }: LoginPageProps) {
 
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-semibold text-xs tracking-wide transition-all shadow-lg shadow-orange-950/40 flex items-center justify-center gap-2 cursor-pointer border border-orange-400/30 hover:scale-[1.01]"
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-semibold text-xs tracking-wide transition-all shadow-lg shadow-orange-950/40 flex items-center justify-center gap-2 cursor-pointer border border-orange-400/30 hover:scale-[1.01]"
             >
               <span>Sign In</span>
               <LogIn className="w-4 h-4" />
@@ -196,13 +201,13 @@ export function LoginPage({ onSuccess, onContinueGuest }: LoginPageProps) {
           </form>
 
           {/* Divider */}
-          <div className="relative flex items-center justify-center my-4">
+          <div className="relative flex items-center justify-center my-2">
             <div className="border-t border-zinc-800 w-full" />
             <span className="bg-[#09090b] px-3 text-[10px] text-zinc-500 uppercase font-mono absolute">OR</span>
           </div>
 
           {/* Social Auth & Guest Mode */}
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             <button
               type="button"
               onClick={handleGoogleAuth}
@@ -227,6 +232,7 @@ export function LoginPage({ onSuccess, onContinueGuest }: LoginPageProps) {
             </button>
           </div>
         </div>
+
       </div>
     </div>
   );

@@ -44,71 +44,75 @@ export function WelcomeScreen({ onEnter, onLogin }: WelcomeScreenProps) {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#000000] text-white flex flex-col lg:flex-row items-center justify-between p-6 lg:p-12 overflow-y-auto select-none">
+    <div className="fixed inset-0 z-50 bg-[#000000] text-white flex items-center justify-center p-4 md:p-8 overflow-y-auto select-none">
       {/* Background Cyber Grid Lines */}
       <div className="absolute inset-0 bg-[radial-gradient(#1f1f23_1px,transparent_1px)] [background-size:28px_28px] opacity-30 -z-10" />
 
-      {/* LEFT SIDE: Brand Name & Big Dragon Artwork */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-between items-start h-full max-w-xl py-6 space-y-8 animate-fade-in">
-        {/* Brand Top Header */}
-        <div className="flex items-center gap-3">
-          <ZydrakonLogo size={44} className="drop-shadow-[0_0_12px_rgba(249,115,22,0.3)]" />
-          <div>
-            <span className="font-extrabold text-xl tracking-wider text-white block">ZYDRAKON AI</span>
-            <span className="text-[10px] text-zinc-500 font-mono tracking-widest uppercase block -mt-0.5">Pitch Black Ultra Studio</span>
-          </div>
-        </div>
+      {/* 2-SHAPE CONTAINER */}
+      <div className="w-full max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-stretch my-auto">
+        
+        {/* SHAPE 1: Left Brand Card */}
+        <div className="w-full bg-[#08080a] border border-zinc-800/90 rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col justify-between space-y-6 relative overflow-hidden">
+          {/* Subtle Glow */}
+          <div className="absolute -top-20 -left-20 w-48 h-48 rounded-full bg-orange-500/10 blur-3xl pointer-events-none" />
 
-        {/* Hero Section & Large Logo */}
-        <div className="flex flex-col items-start space-y-6 my-auto">
-          <div className="relative group cursor-pointer" onClick={() => isComplete && onEnter()}>
-            <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-orange-500/20 to-amber-500/10 blur-xl opacity-70 group-hover:opacity-100 transition-opacity" />
-            <ZydrakonLogo size={160} className="relative drop-shadow-[0_0_35px_rgba(249,115,22,0.35)] transition-transform duration-300 group-hover:scale-105" />
-          </div>
-
-          <div className="space-y-2">
-            <h1 className="text-4xl lg:text-5xl font-black tracking-tight text-white">
-              Zydrakon AI
-            </h1>
-            <p className="text-sm text-zinc-400 font-medium max-w-md leading-relaxed">
-              Next-Generation AI Intelligence & Streaming Studio with Multi-LLM Round-Robin Engine
-            </p>
-          </div>
-
-          {/* High-Tech Boot Status */}
-          <div className="w-full max-w-md space-y-3 pt-2">
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-mono">
-              <span className="flex items-center gap-1.5 text-zinc-300">
-                <Cpu className="w-3.5 h-3.5 animate-spin text-orange-400" />
-                {BOOT_STEPS[stepIndex]}
-              </span>
-              <span className="font-bold text-white">{progress}%</span>
-            </div>
-
-            {/* Progress Track */}
-            <div className="w-full h-1.5 rounded-full bg-zinc-900 border border-zinc-800 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-orange-500 transition-all duration-200 ease-out shadow-[0_0_10px_rgba(249,115,22,0.8)]"
-                style={{ width: `${progress}%` }}
-              />
+          {/* Top Brand Header */}
+          <div className="flex items-center gap-3">
+            <ZydrakonLogo size={40} className="drop-shadow-[0_0_12px_rgba(249,115,22,0.3)]" />
+            <div>
+              <span className="font-extrabold text-lg tracking-wider text-white block">ZYDRAKON AI</span>
+              <span className="text-[10px] text-zinc-500 font-mono tracking-widest uppercase block -mt-0.5">Pitch Black Ultra Studio</span>
             </div>
           </div>
+
+          {/* Center Content */}
+          <div className="flex flex-col items-center text-center space-y-4 my-auto">
+            <div className="relative group cursor-pointer" onClick={() => isComplete && onEnter()}>
+              <div className="absolute -inset-3 rounded-full bg-orange-500/15 blur-xl opacity-70 group-hover:opacity-100 transition-opacity" />
+              <ZydrakonLogo size={130} className="relative drop-shadow-[0_0_25px_rgba(249,115,22,0.35)] transition-transform duration-300 group-hover:scale-105" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                Zydrakon AI
+              </h1>
+              <p className="text-xs text-zinc-400 font-medium max-w-xs leading-relaxed">
+                Next-Generation AI Intelligence & Streaming Studio with Multi-LLM Round-Robin Engine
+              </p>
+            </div>
+
+            {/* High-Tech Boot Status Bar */}
+            <div className="w-full max-w-sm space-y-2 pt-2">
+              <div className="flex items-center justify-between text-xs text-zinc-400 font-mono">
+                <span className="flex items-center gap-1.5 text-zinc-300">
+                  <Cpu className="w-3.5 h-3.5 animate-spin text-orange-400" />
+                  {BOOT_STEPS[stepIndex]}
+                </span>
+                <span className="font-bold text-white">{progress}%</span>
+              </div>
+
+              <div className="w-full h-1.5 rounded-full bg-zinc-900 border border-zinc-800 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-orange-500 transition-all duration-200 ease-out shadow-[0_0_10px_rgba(249,115,22,0.8)]"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Left Footer */}
+          <div className="pt-3 border-t border-zinc-800/60 flex items-center justify-between text-[11px] text-zinc-500 font-mono">
+            <span>© 2026 Zydrakon AI</span>
+            <span>By <strong className="text-zinc-300">Raj Patil</strong></span>
+          </div>
         </div>
 
-        {/* Left Side Footer */}
-        <div className="text-xs text-zinc-500 font-mono space-y-1">
-          <p>© 2026 Zydrakon AI — All rights reserved</p>
-          <p>Created & Developed by <span className="text-zinc-300 font-semibold">Raj Patil</span></p>
-        </div>
-      </div>
-
-      {/* RIGHT SIDE: Action Card Scene */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center py-6">
-        <div className="w-full max-w-md bg-[#09090b] border border-zinc-800/90 rounded-3xl p-8 shadow-2xl space-y-6 relative overflow-hidden text-center">
-          <ZydrakonLogo size={70} />
+        {/* SHAPE 2: Right Welcome Action Card */}
+        <div className="w-full bg-[#09090b] border border-zinc-800/90 rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col justify-between space-y-6 relative overflow-hidden text-center">
+          <ZydrakonLogo size={64} className="mx-auto" />
 
           <div>
-            <h2 className="text-2xl font-extrabold text-white tracking-tight">
+            <h2 className="text-xl md:text-2xl font-extrabold text-white tracking-tight">
               Welcome to Zydrakon AI
             </h2>
             <p className="text-xs text-zinc-400 mt-1">
@@ -116,7 +120,7 @@ export function WelcomeScreen({ onEnter, onLogin }: WelcomeScreenProps) {
             </p>
           </div>
 
-          <div className="space-y-3 pt-2">
+          <div className="space-y-3 my-auto">
             <button
               onClick={onLogin || onEnter}
               className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-semibold text-xs tracking-wide transition-all shadow-lg shadow-orange-950/40 flex items-center justify-center gap-2 cursor-pointer border border-orange-400/30 hover:scale-[1.02]"
@@ -139,6 +143,7 @@ export function WelcomeScreen({ onEnter, onLogin }: WelcomeScreenProps) {
             <span>Encrypted Session • Multi-Model Engine Active</span>
           </div>
         </div>
+
       </div>
     </div>
   );
