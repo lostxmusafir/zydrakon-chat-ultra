@@ -67,34 +67,17 @@ export function LoginPage({ onSuccess, onContinueGuest }: LoginPageProps) {
           <ZydrakonLogo size={80} />
           <div>
             <h2 className="text-2xl font-extrabold text-white tracking-tight">
-              {isRegister ? "Create Zydrakon Account" : "Welcome Back"}
+              Sign In to Zydrakon AI
             </h2>
             <p className="text-xs text-zinc-400 mt-1">
-              Sign in to access your saved sessions and AI models
+              Log in with your user credentials (bcrypt protected)
             </p>
           </div>
         </div>
 
-        {/* Auth Mode Tabs */}
-        <div className="flex items-center p-1 rounded-2xl bg-zinc-950 border border-zinc-800/90">
-          <button
-            type="button"
-            onClick={() => { setIsRegister(false); setErrorMsg(""); }}
-            className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all ${
-              !isRegister ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-400 hover:text-white"
-            }`}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => { setIsRegister(true); setErrorMsg(""); }}
-            className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all ${
-              isRegister ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-400 hover:text-white"
-            }`}
-          >
-            Register
-          </button>
+        {/* Notice Info */}
+        <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-400 text-center">
+          <span>🔒 Public sign-up is disabled. Accounts are managed by administrator.</span>
         </div>
 
         {/* Error Alert */}

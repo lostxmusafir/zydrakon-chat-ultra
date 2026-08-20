@@ -111,6 +111,17 @@ class ApiClient {
   async getRateLimits(sessionId: string): Promise<RateLimits> {
     return this.request<RateLimits>(`/api/chat/limits?session_id=${encodeURIComponent(sessionId)}`);
   }
+
+  async changePassword(oldPassword: string, newPassword: string): Promise<{ status: string; message: string }> {
+    return this.request<{ status: string; message: string }>("/api/auth/change-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        old_password: oldPassword,
+        new_password: newPassword,
+      }),
+    });
+  }
 }
 
 export const api = new ApiClient();

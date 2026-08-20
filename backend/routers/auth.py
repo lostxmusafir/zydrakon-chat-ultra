@@ -1,13 +1,13 @@
 import uuid
 import logging
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 
 from backend.utils.config import settings
-from backend.utils.auth import create_access_token, get_password_hash, verify_password
+from backend.utils.auth import create_access_token, get_password_hash, verify_password, get_current_user
 from backend.models.database import get_db
-from backend.models.schemas import User, UserCreate, UserLogin
+from backend.models.schemas import User, UserLogin, ChangePasswordRequest
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 logger = logging.getLogger(__name__)
@@ -17,49 +17,28 @@ class AuthResponse(BaseModel):
     token_type: str
     user: User
 
-@router.post("/register", response_model=AuthResponse)
-async def register(user_in: UserCreate):
-    db = get_db()
-    
-    # Check if user exists
-    if db.users.find_one({"email": user_in.email}):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User with this email already exists"
-        )
-        
-    user_id = str(uuid.uuid4())
-    hashed_password = get_password_hash(user_in.password)
-    
-    new_user = {
-        "id": user_id,
-        "email": user_in.email,
-        "name": user_in.name,
-        "hashed_password": hashed_password,
-        "created_at": datetime.utcnow()
-    }
-    
-    db.users.insert_one(new_user)
-    
-    access_token = create_access_token(data={"sub": user_id})
-    
-    return AuthResponse(
-        access_token=access_token,
-        token_type="bearer",
-        user=User(
-            id=user_id,
-            email=user_in.email,
-            name=user_in.name,
-            tier=new_user.get("tier", "free"),
-            allowed_models=new_user.get("allowed_models")
-        )
+class StatusResponse(BaseModel):
+    status: str
+    message: str
+
+@router.post("/register")
+async def register():
+    """Public sign-up is disabled."""
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Public sign-up is disabled. Please contact your system administrator for access or log in with an existing account."
     )
 
 @router.post("/login", response_model=AuthResponse)
 async def login(user_in: UserLogin):
     db = get_db()
     
-    user = db.users.find_one({"email": user_in.email})
+    # 1. Look up user by email
+    user = db.users.find_one({"email": user_in.email.strip().lower()})
+    if not user:
+        # Fallback check without lowercasing if original exact string exists
+        user = db.users.find_one({"email": user_in.email.strip()})
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -67,13 +46,16 @@ async def login(user_in: UserLogin):
             headers={"WWW-Authenticate": "Bearer"},
         )
         
-    if not verify_password(user_in.password, user["hashed_password"]):
+    # 2. Verify password with bcrypt
+    hashed_pwd = user.get("hashed_password")
+    if not hashed_pwd or not verify_password(user_in.password, hashed_pwd):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
         
+    # 3. Generate JWT access token
     access_token = create_access_token(data={"sub": user["id"]})
     
     return AuthResponse(
@@ -86,4 +68,56 @@ async def login(user_in: UserLogin):
             tier=user.get("tier", "free"),
             allowed_models=user.get("allowed_models")
         )
+    )
+
+@router.post("/change-password", response_model=StatusResponse)
+async def change_password(req: ChangePasswordRequest, current_user: dict = Depends(get_current_user)):
+    if current_user.get("id") == "guest-user":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Guest users cannot change password. Please log in first."
+        )
+
+    db = get_db()
+    user = db.users.find_one({"id": current_user["id"]})
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # 1. Verify old password using bcrypt
+    if not verify_password(req.old_password, user["hashed_password"]):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+
+    # 2. Hash new password using bcrypt
+    new_hashed_password = get_password_hash(req.new_password)
+
+    # 3. Update in MongoDB users collection
+    db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {
+            "hashed_password": new_hashed_password,
+            "updated_at": datetime.utcnow()
+        }}
+    )
+
+    logger.info(f"Password successfully changed for user {user['email']}")
+
+    return StatusResponse(
+        status="success",
+        message="Password updated successfully. Please use your new password for future logins."
+    )
+
+@router.get("/me", response_model=User)
+async def get_me(current_user: dict = Depends(get_current_user)):
+    return User(
+        id=current_user.get("id", "guest-user"),
+        email=current_user.get("email", "guest@zydrakon.ai"),
+        name=current_user.get("name", "Guest User"),
+        tier=current_user.get("tier", "free"),
+        allowed_models=current_user.get("allowed_models")
     )

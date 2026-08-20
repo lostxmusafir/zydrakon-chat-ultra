@@ -20,7 +20,8 @@ import {
   Globe,
   ExternalLink,
   Copy,
-  Check
+  Check,
+  Lock
 } from "lucide-react";
 import { Message, Session, RateLimits } from "@/lib/types";
 import { api, ApiError } from "@/lib/api";
@@ -38,6 +39,7 @@ import { LiveAIWriter } from "@/components/LiveAIWriter";
 import { ZydrakonLogo } from "@/components/ZydrakonLogo";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { LoginPage } from "@/components/LoginPage";
+import { ChangePasswordModal } from "@/components/ChangePasswordModal";
 
 const FREE_MODELS = [
   { id: "zydrakon-free", name: "Zydrakon AI (Free)" },
@@ -104,6 +106,7 @@ export default function Home() {
   const [selectedAgentId, setSelectedAgentId] = useState<string>("general-assistant");
   const [showAgentsPanel, setShowAgentsPanel] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -667,18 +670,27 @@ function formatMarkdownInline(text: string): React.ReactNode {
                   <p className="text-[10px] text-zinc-500 truncate">{currentUser.email}</p>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  localStorage.removeItem("zydrakon_token");
-                  localStorage.removeItem("zydrakon_user");
-                  setIsAuthenticated(false);
-                  setCurrentUser(null);
-                }}
-                className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-red-400 transition-colors"
-                title="Logout"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setShowChangePasswordModal(true)}
+                  className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-orange-400 transition-colors"
+                  title="Change Password"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem("zydrakon_token");
+                    localStorage.removeItem("zydrakon_user");
+                    setIsAuthenticated(false);
+                    setCurrentUser(null);
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-red-400 transition-colors"
+                  title="Log out"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           ) : (
             <button
@@ -890,6 +902,12 @@ function formatMarkdownInline(text: string): React.ReactNode {
           setIsAuthenticated(true);
           setCurrentUser(user);
         }}
+      />
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
       />
     </div>
   );

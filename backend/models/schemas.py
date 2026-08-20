@@ -26,6 +26,10 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
+class ChangePasswordRequest(BaseModel):
+    old_password: str = Field(..., min_length=1, description="Current password")
+    new_password: str = Field(..., min_length=6, description="New password (minimum 6 characters)")
+
 class SearchResult(BaseModel):
     title: str
     url: str
