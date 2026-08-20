@@ -42,9 +42,9 @@ export function WelcomeScreen({ onEnter, onLogin }: WelcomeScreenProps) {
         </div>
 
         {/* Center Headline & Dragon Artwork */}
-        <div className="my-auto space-y-8 py-6 max-w-lg">
+        <div className="my-auto space-y-6 py-4 max-w-xl">
           <div className="cursor-pointer" onClick={onEnter}>
-            <ZydrakonLogo size={240} />
+            <ZydrakonLogo size={400} className="w-full max-w-[400px] h-auto drop-shadow-[0_0_50px_rgba(255,255,255,0.08)]" />
           </div>
 
           <div className="space-y-3">
