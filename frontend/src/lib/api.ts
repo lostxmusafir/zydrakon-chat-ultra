@@ -66,6 +66,14 @@ class ApiClient {
     }
   }
 
+  async login(credentials: { email: string; password: string }): Promise<{ access_token: string; token_type: string; user: any }> {
+    return this.request<{ access_token: string; token_type: string; user: any }>("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(credentials),
+    });
+  }
+
   async createSession(): Promise<Session> {
     return this.request<Session>("/api/sessions", {
       method: "POST",
