@@ -162,7 +162,7 @@ export function AgentsPanel({ isOpen, onClose, selectedAgentId, onSelectAgent }:
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl hover:bg-[#eae8e2] dark:hover:bg-[#2d2d2a] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition-colors"
+            className="p-2 rounded-xl hover:bg-zinc-800 text-[var(--text-secondary)] hover:text-[var(--text-main)] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -182,13 +182,13 @@ export function AgentsPanel({ isOpen, onClose, selectedAgentId, onSelectAgent }:
                     onSelectAgent(agent.id);
                     onClose();
                   }}
-                  className={`group relative flex flex-col items-start p-5 rounded-2xl border-2 transition-all duration-300 text-left cursor-pointer
+                  className={`group relative flex flex-col items-start p-5 rounded-2xl border transition-all duration-300 text-left cursor-pointer
                     ${
                       isSelected
-                        ? "border-transparent shadow-lg scale-[1.02]"
-                        : "border-[var(--border-color)] hover:border-transparent hover:shadow-md hover:scale-[1.01]"
+                        ? "border-orange-500/50 shadow-lg scale-[1.02] bg-zinc-900"
+                        : "border-zinc-800/90 hover:border-zinc-700 hover:shadow-md hover:scale-[1.01] bg-[#0c0c0e]"
                     }
-                    bg-[var(--bg-card)] hover:bg-[#f3f1eb] dark:hover:bg-[#252522]
+                    hover:bg-zinc-900
                   `}
                   style={{
                     animationDelay: `${idx * 50}ms`,

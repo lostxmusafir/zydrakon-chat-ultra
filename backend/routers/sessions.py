@@ -48,6 +48,18 @@ async def delete_session(session_id: str, user: dict = Depends(get_current_user)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete session: {str(e)}")
 
+@router.delete("")
+async def delete_all_sessions(user: dict = Depends(get_current_user)):
+    db = get_db()
+    try:
+        user_id = user.get("id", "guest-user")
+        db.sessions.delete_many({"user_id": user_id})
+        db.messages.delete_many({})
+        db.cached_responses.delete_many({})
+        return {"status": "success", "message": "All sessions deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete all sessions: {str(e)}")
+
 @router.get("/{session_id}/messages", response_model=MessagesListResponse)
 async def get_messages(session_id: str, user: dict = Depends(get_current_user)):
     db = get_db()

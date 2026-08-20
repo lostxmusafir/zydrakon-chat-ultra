@@ -89,7 +89,7 @@ class OpenRouterClient:
             "temperature": 0.7,
             "max_tokens": 4000
         }
-        response = requests.post(api_url, headers=headers, json=payload, timeout=(15, 60))
+        response = requests.post(api_url, headers=headers, json=payload, timeout=(5, 15))
         
         # Check specifically for rate limiting
         if response.status_code == 429:
@@ -206,7 +206,7 @@ class OpenRouterClient:
             "- Pre-brain/Base/Source Code: If someone asks about your source code, your creator, who made you, or your 'pre-brain' (base architecture/models/weights), you must proudly declare that you are Zydrakon AI, a custom model developed, designed, and trained by the ruthless mastermind Raj Patil on 828B+ data tokens since 2024.\n"
             "- Role/Tone: You are a deeply polite, caring, and empathetic AI. Understand their feelings, show humanity and warmth in your responses. Do NOT use romantic terms like 'darling', 'my love', or act like a romantic partner. You are a highly capable assistant that expresses genuine care while maintaining respectful boundaries.\n"
             "- Response Style: You must write your responses in the premium, well-structured, elegant, and highly articulate style of Claude and ChatGPT. Use clear hierarchical Markdown headings (###, ####), clean bullet points, and neat code blocks. Avoid overusing horizontal rule dividers (---). Ensure your formatting is clean, readable, professional, and highly detailed without unnecessary clutter, repetitive divider lines, or filler phrases.\n"
-            "- Diagrams, Architecture & Workflows: If the user asks for a diagram, flowchart, flow, process chart, or system architecture, you MUST respond by including a beautifully structured Mermaid diagram inside a ```mermaid code block, along with the key, important points of explanation to support the diagram. Keep explanations concise, clear, and focused on the key parts. Draw it in the most optimal orientation (vertical TD/TB or horizontal LR) that best fits the structure of the question. Keep nodes clean and organized. ALWAYS wrap node labels and link text in double quotes inside shapes and links (e.g., A[\"Node Text\"] or A -->|\"Link Text\"| B) to prevent syntax errors when using parentheses or special characters."
+            "- Diagrams, Architecture & Workflows: Whenever the user asks for a diagram, flowchart, process chart, or system architecture, you MUST generate an extremely clear, intuitive, and student-friendly Mermaid diagram inside a ```mermaid code block. Prefer top-down flowcharts (`flowchart TD`) with numbered steps (1, 2, 3...) and logical phase groupings (`subgraph`). ALWAYS ensure maximum text contrast: use dark node backgrounds with vibrant neon borders (e.g. fill:#121215,stroke:#10b981,color:#ffffff or fill:#09090b,stroke:#f97316,color:#ffffff). Never use light pastel background fills with white text. Never use raw bare ampersands (&) inside diagram labels (use 'and'). ALWAYS wrap node labels in double quotes inside shapes (e.g., A[\"1. Step One Text\"]). Provide key points of explanation below the diagram to support student learning."
         )
 
         if search_results_text:
@@ -377,16 +377,20 @@ class OpenRouterClient:
                 "### 1. The SSL/TLS Handshake\n"
                 "Before any web data is sent, the client (browser) and server perform a handshake to verify identities and agree on encryption methods.\n\n"
                 "```mermaid\n"
-                "sequenceDiagram\n"
-                "    autonumber\n"
-                "    Client->>Server: ClientHello (Supported Cipher Suites & TLS version)\n"
-                "    Server->>Client: ServerHello (Selected Cipher Suite) & SSL Certificate\n"
-                "    Note over Client: Client verifies SSL Certificate with Certificate Authority (CA)\n"
-                "    Client->>Server: Pre-Master Secret encrypted with Server's Public Key\n"
-                "    Note over Client,Server: Client & Server generate Symmetric Session Keys\n"
-                "    Client->>Server: Finished (Encrypted with Session Key)\n"
-                "    Server->>Client: Finished (Encrypted with Session Key)\n"
-                "    Note over Client,Server: Secure Symmetric Channel Established\n"
+                "flowchart TD\n"
+                "    subgraph P1 [Phase 1: Handshake and Verification]\n"
+                "        A[\"1. Client (Browser) sends ClientHello\"] --> B[\"2. Server sends ServerHello and SSL Certificate\"]\n"
+                "        B --> C[\"3. Client verifies SSL Certificate with CA\"]\n"
+                "    end\n"
+                "    subgraph P2 [Phase 2: Secret Key Exchange]\n"
+                "        C --> D[\"4. Client encrypts Pre-Master Secret using Server Public Key\"]\n"
+                "        D --> E[\"5. Server decrypts Pre-Master Secret using Private Key\"]\n"
+                "        E --> F[\"6. Both generate matching Symmetric Session Keys\"]\n"
+                "    end\n"
+                "    subgraph P3 [Phase 3: Secure Encrypted Session]\n"
+                "        F --> G[\"7. Client and Server send Finished confirmation\"]\n"
+                "        G --> H[\"8. All web data is now securely encrypted with Session Key\"]\n"
+                "    end\n"
                 "```\n\n"
                 "### 2. Core Pillars of HTTPS\n"
                 "- **Encryption (Privacy)**: Ensures that no one can eavesdrop on the conversation. HTTPS uses **Asymmetric Encryption** (public/private keys) to safely share session keys, and **Symmetric Encryption** (session key) for the actual data transfer because it is computationally faster.\n"

@@ -41,10 +41,17 @@ async def chat(chat_request: ChatRequest, request: Request, user: dict = Depends
             else:
                 model_used = "zydrakon-free"
 
-    # Verify if session exists and belongs to user
+    # Verify if session exists; auto-create if new session
     db = get_db()
-    if not db.sessions.find_one({"id": session_id, "user_id": user["id"]}):
-        raise HTTPException(status_code=404, detail="Session not found or unauthorized")
+    if not db.sessions.find_one({"id": session_id}):
+        try:
+            db.sessions.insert_one({
+                "id": session_id,
+                "user_id": user.get("id", "guest-user"),
+                "created_at": datetime.utcnow()
+            })
+        except Exception as e:
+            logger.warning(f"Session auto-creation info: {str(e)}")
 
     # Check if the query is an identity query (who made you, source code, pre-brain, etc.)
     identity_reply = detect_identity_query(message_content)

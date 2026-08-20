@@ -1,49 +1,53 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { 
-  MessageSquare, 
-  Plus, 
-  Trash2, 
-  Send, 
-  Database, 
-  ShieldAlert, 
-  Cpu, 
-  Zap,
+import {
+  MessageSquare,
+  Plus,
+  Trash2,
+  Send,
   Sparkles,
-  ArrowRight,
-  Clock,
   Sun,
   Moon,
-  Paperclip,
   PanelLeftClose,
   PanelLeft,
+  Bot,
+  Feather,
+  LogOut,
+  User,
+  ShieldCheck,
+  Zap,
   Globe,
   ExternalLink,
-  Bot
+  Copy,
+  Check
 } from "lucide-react";
 import { Message, Session, RateLimits } from "@/lib/types";
 import { api, ApiError } from "@/lib/api";
 import dynamic from "next/dynamic";
 
-const Mermaid = dynamic(() => import("../components/Mermaid"), {
-  ssr: false,
-});
+const Mermaid = dynamic(() => import("../components/Mermaid"), { ssr: false });
+const ArchitectureDiagram = dynamic(
+  () => import("../components/ArchitectureDiagram").then((mod) => mod.ArchitectureDiagram),
+  { ssr: false }
+);
 import { LoginModal } from "@/components/LoginModal";
-import { LogOut } from "lucide-react";
 import { AgentsPanel, AGENTS } from "@/components/AgentsPanel";
 import { AgentLoader } from "@/components/AgentLoader";
+import { LiveAIWriter } from "@/components/LiveAIWriter";
+import { ZydrakonLogo } from "@/components/ZydrakonLogo";
+import { WelcomeScreen } from "@/components/WelcomeScreen";
+import { LoginPage } from "@/components/LoginPage";
 
 const FREE_MODELS = [
   { id: "zydrakon-free", name: "Zydrakon AI (Free)" },
   { id: "zhipu-free", name: "Zydrakon AI (Gold)" },
-  { id: "zydrakon-premium", name: "Zydrakon AI Premium" }
+  { id: "zydrakon-premium", name: "Zydrakon AI Premium" },
 ];
 
-// Helper Component for Markdown Code Block
 function CodeBlock({ code, language }: { code: string; language: string }) {
   const [copied, setCopied] = useState(false);
-  
+
   const handleCopy = () => {
     navigator.clipboard.writeText(code);
     setCopied(true);
@@ -51,17 +55,21 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
   };
 
   return (
-    <div className="my-4 rounded-xl overflow-hidden border border-[var(--border-color)] shadow-sm bg-[var(--bg-code-body)]">
-      <div className="flex justify-between items-center bg-[var(--bg-code-header)] px-4 py-2 text-xs text-[var(--text-secondary)] font-mono border-b border-[var(--border-color)] select-none">
+    <div className="my-4 rounded-xl overflow-hidden border border-zinc-800 shadow-md bg-[#050507]">
+      <div className="flex justify-between items-center bg-[#121215] px-4 py-2 text-xs text-zinc-400 font-mono border-b border-zinc-800/80 select-none">
         <span>{language || "code"}</span>
-        <button 
+        <button
           onClick={handleCopy}
-          className="hover:text-[var(--text-main)] transition-colors flex items-center gap-1 font-semibold"
+          className="hover:text-white transition-colors flex items-center gap-1 font-medium text-zinc-300"
         >
-          {copied ? "Copied!" : "Copy code"}
+          {copied ? (
+            <span className="text-emerald-400 flex items-center gap-1"><Check className="w-3 h-3"/> Copied!</span>
+          ) : (
+            <span className="flex items-center gap-1"><Copy className="w-3 h-3"/> Copy code</span>
+          )}
         </button>
       </div>
-      <pre className="p-4 overflow-x-auto font-mono text-xs md:text-sm leading-relaxed scrollbar-thin text-slate-200">
+      <pre className="p-4 overflow-x-auto font-mono text-xs md:text-sm leading-relaxed scrollbar-thin text-zinc-200">
         <code>{code}</code>
       </pre>
     </div>
@@ -75,39 +83,43 @@ export default function Home() {
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [rateLimitError, setRateLimitError] = useState<{ message: string; retryAfter?: string } | null>(null);
   const [selectedModel, setSelectedModel] = useState("zydrakon-free");
   const [limits, setLimits] = useState<RateLimits | null>(null);
   const [thinkingMode, setThinkingMode] = useState(false);
-  const [loadingPhase, setLoadingPhase] = useState(0);
-  
+  const [isStreamingMsg, setIsStreamingMsg] = useState(false);
+
+  // App Main Mode: 'chat' | 'writer'
+  const [mainView, setMainView] = useState<"chat" | "writer">("chat");
+
   // Layout states
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [isAuthChecking, setIsAuthChecking] = useState(true);
+
+  // Welcome & Full Login States
+  const [showWelcomeScreen, setShowWelcomeScreen] = useState(true);
+  const [showFullLoginPage, setShowFullLoginPage] = useState(false);
 
   // Agents states
   const [selectedAgentId, setSelectedAgentId] = useState<string>("general-assistant");
   const [showAgentsPanel, setShowAgentsPanel] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Derived agent object
-  const activeAgent = AGENTS.find(a => a.id === selectedAgentId) || AGENTS[AGENTS.length - 1];
+  // Active agent
+  const activeAgent = AGENTS.find((a) => a.id === selectedAgentId) || AGENTS[AGENTS.length - 1];
 
-  // Initialize: Load sessions, configure theme, restore agent
+  // Initialize
   useEffect(() => {
     loadSessions();
-    
-    // Theme setup — Always Enforce Dark Mode
-    setIsDarkMode(true);
+
+    // Enforce Pitch Black Dark Mode
     document.documentElement.classList.add("dark");
     localStorage.setItem("zydrakon_theme", "dark");
 
-    // Check Auth & Restore User
+    // Restore Auth User
     const token = localStorage.getItem("zydrakon_token");
     const storedUser = localStorage.getItem("zydrakon_user");
     if (token) {
@@ -116,140 +128,56 @@ export default function Home() {
         try {
           setCurrentUser(JSON.parse(storedUser));
         } catch (e) {
-          console.error("Failed to parse stored user", e);
+          console.error(e);
         }
       }
     }
-    setIsAuthChecking(false);
 
-    // Restore saved agent selection
+    // Restore Agent Selection
     const savedAgent = localStorage.getItem("zydrakon_agent");
-    if (savedAgent && AGENTS.some(a => a.id === savedAgent)) {
+    if (savedAgent && AGENTS.some((a) => a.id === savedAgent)) {
       setSelectedAgentId(savedAgent);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sync: When active session changes, load messages & limits
+  // Sync session change
   useEffect(() => {
     if (activeSessionId) {
       loadMessages(activeSessionId);
       loadLimits(activeSessionId);
-      setRateLimitError(null);
       setError(null);
     }
   }, [activeSessionId]);
 
-  // Scroll to bottom when messages update
+  // Scroll to bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
+    if (mainView === "chat") {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, isLoading, isStreamingMsg, mainView]);
 
-  // Adjust textarea height when typing
+  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 240)}px`;
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 180)}px`;
     }
   }, [inputText]);
-
-  // Auto-focus input when AI finishes responding, when switching sessions, or when starting new chat
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      const timer = setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-        }
-      }, 60);
-      return () => clearTimeout(timer);
-    }
-  }, [isLoading, isAuthenticated, activeSessionId, messages.length]);
-
-  // Advance loading phase while AI is responding
-  useEffect(() => {
-    if (!isLoading) {
-      setLoadingPhase(0);
-      return;
-    }
-    const maxPhase = thinkingMode ? 2 : 1;
-    const interval = setInterval(() => {
-      setLoadingPhase(prev => (prev < maxPhase ? prev + 1 : prev));
-    }, 2200);
-    return () => clearInterval(interval);
-  }, [isLoading, thinkingMode]);
-
-  const toggleTheme = () => {
-    if (isDarkMode) {
-      setIsDarkMode(false);
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("zydrakon_theme", "light");
-    } else {
-      setIsDarkMode(true);
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("zydrakon_theme", "dark");
-    }
-  };
 
   const loadSessions = async () => {
     try {
       const data = await api.listSessions();
       setSessions(data);
-      
-      const storedActive = localStorage.getItem("zydrakon_active_session");
-      if (storedActive && data.some(s => s.id === storedActive)) {
-        setActiveSessionId(storedActive);
-      } else if (data.length > 0) {
+      if (data.length > 0 && !activeSessionId) {
         setActiveSessionId(data[0].id);
-      } else {
-        await createNewSession();
+      } else if (data.length === 0) {
+        handleNewSession();
       }
     } catch (err: any) {
-      if (err.status === 401) {
-        handleLogout();
-        return;
-      }
-      const msg = err instanceof Error ? err.message : "Failed to load sessions";
-      setError(msg);
-    }
-  };
-
-  const createNewSession = async () => {
-    try {
-      const newSession = await api.createSession();
-      setSessions(prev => [newSession, ...prev]);
-      setActiveSessionId(newSession.id);
-      localStorage.setItem("zydrakon_active_session", newSession.id);
-      setMessages([]);
-      setRateLimitError(null);
-      setInputText("");
-      if (textareaRef.current) textareaRef.current.style.height = "auto";
-      setTimeout(() => textareaRef.current?.focus(), 60);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to create new session";
-      setError(msg);
-    }
-  };
-
-  const deleteSession = async (e: React.MouseEvent, sessionId: string) => {
-    e.stopPropagation();
-    if (!confirm("Are you sure you want to delete this session?")) return;
-    
-    try {
-      await api.deleteSession(sessionId);
-    } catch (err: unknown) {
-      console.warn("Session delete notice:", err);
-    } finally {
-      const remainingSessions = sessions.filter(s => s.id !== sessionId);
-      setSessions(remainingSessions);
-      
-      if (activeSessionId === sessionId) {
-        if (remainingSessions.length > 0) {
-          setActiveSessionId(remainingSessions[0].id);
-          localStorage.setItem("zydrakon_active_session", remainingSessions[0].id);
-        } else {
-          await createNewSession();
-        }
-      }
+      console.log("Using local offline session fallback...", err);
+      const defaultId = `session-${Date.now()}`;
+      setSessions([{ id: defaultId, created_at: new Date().toISOString() }]);
+      setActiveSessionId(defaultId);
     }
   };
 
@@ -257,922 +185,703 @@ export default function Home() {
     try {
       const msgs = await api.getSessionMessages(sessionId);
       setMessages(msgs);
-      setTimeout(() => textareaRef.current?.focus(), 60);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to load messages";
-      setError(msg);
+    } catch (err) {
+      setMessages([]);
     }
   };
 
   const loadLimits = async (sessionId: string) => {
     try {
-      const rateLimits = await api.getRateLimits(sessionId);
-      setLimits(rateLimits);
+      const l = await api.getRateLimits(sessionId);
+      setLimits(l);
     } catch (err) {
-      console.error("Failed to load rate limits", err);
+      setLimits(null);
     }
   };
 
-  const handleSend = async () => {
-    if (!inputText.trim() || isLoading || !activeSessionId) return;
+  const handleNewSession = async () => {
+    try {
+      const newSession = await api.createSession();
+      setSessions((prev) => [newSession, ...prev]);
+      setActiveSessionId(newSession.id);
+      setMessages([]);
+    } catch (err) {
+      const localId = `session-${Date.now()}`;
+      const localSession = { id: localId, created_at: new Date().toISOString() };
+      setSessions((prev) => [localSession, ...prev]);
+      setActiveSessionId(localId);
+      setMessages([]);
+    }
+  };
 
-    const userText = inputText.trim();
+  const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await api.deleteSession(sessionId);
+      const updated = sessions.filter((s) => s.id !== sessionId);
+      setSessions(updated);
+      if (activeSessionId === sessionId) {
+        setActiveSessionId(updated.length > 0 ? updated[0].id : null);
+      }
+    } catch (err) {
+      const updated = sessions.filter((s) => s.id !== sessionId);
+      setSessions(updated);
+      if (activeSessionId === sessionId) {
+        setActiveSessionId(updated.length > 0 ? updated[0].id : null);
+      }
+    }
+  };
+
+  const handleDeleteAllSessions = async () => {
+    try {
+      await api.deleteAllSessions();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSessions([]);
+      setMessages([]);
+      handleNewSession();
+    }
+  };
+
+  // Stream AI response text character by character for Live AI Write effect in Chat
+  const streamResponseIntoChat = (fullResponseText: string, searchResults?: any[], searchQuery?: string) => {
+    setIsStreamingMsg(true);
+    let currentLen = 0;
+    const totalLen = fullResponseText.length;
+    const chunkSize = Math.max(2, Math.floor(totalLen / 120));
+
+    // Create temporary streaming assistant message
+    const assistantMsgIndex = messages.length + 1; // position
+
+    const interval = setInterval(() => {
+      currentLen += chunkSize;
+      const slicedText = fullResponseText.slice(0, currentLen);
+
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last && last.role === "assistant" && (last as any).isStreaming) {
+          return [
+            ...prev.slice(0, -1),
+            {
+              ...last,
+              content: slicedText,
+            },
+          ];
+        } else {
+          return [
+            ...prev,
+            {
+              role: "assistant",
+              content: slicedText,
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              model_used: selectedModel,
+              search_results: searchResults,
+              search_query: searchQuery,
+              isStreaming: true,
+            } as any,
+          ];
+        }
+      });
+
+      if (currentLen >= totalLen) {
+        clearInterval(interval);
+        setIsStreamingMsg(false);
+        // Finalize message state
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last && (last as any).isStreaming) {
+            delete (last as any).isStreaming;
+          }
+          return [...prev];
+        });
+      }
+    }, 15);
+  };
+
+  const handleSendMessage = async () => {
+    if (!inputText.trim() || isLoading || isStreamingMsg) return;
+
+    let currentSession = activeSessionId;
+    if (!currentSession) {
+      try {
+        const newS = await api.createSession();
+        setSessions([newS]);
+        setActiveSessionId(newS.id);
+        currentSession = newS.id;
+      } catch {
+        currentSession = `session-${Date.now()}`;
+        setSessions([{ id: currentSession, created_at: new Date().toISOString() }]);
+        setActiveSessionId(currentSession);
+      }
+    }
+
+    const userMessageText = inputText.trim();
     setInputText("");
-    if (textareaRef.current) textareaRef.current.style.height = "auto";
     setError(null);
-    setRateLimitError(null);
+
+    const userMsg: Message = {
+      role: "user",
+      content: userMessageText,
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
 
-    const userMessage: Message = {
-      role: "user",
-      content: userText,
-      timestamp: new Date().toISOString()
-    };
-    setMessages(prev => [...prev, userMessage]);
-
     try {
-      const agentPrompt = activeAgent.systemPrompt || undefined;
-      const response = await api.sendChatMessage(activeSessionId, userText, selectedModel, thinkingMode, agentPrompt);
-      
-      const assistantMessage: Message = {
-        role: "assistant",
-        content: response.response,
-        timestamp: new Date().toISOString(),
-        model_used: response.model_used,
-        search_query: response.search_query,
-        search_results: response.search_results
-      };
-      
-      setMessages(prev => [...prev, assistantMessage]);
-      await loadLimits(activeSessionId);
-    } catch (err: any) {
-      if (err.status === 401) {
-        handleLogout();
-        return;
-      }
-      if (err instanceof ApiError && err.status === 429) {
-        setRateLimitError({
-          message: err.message,
-          retryAfter: err.details?.retry_after as string | undefined
-        });
-      } else {
-        const msg = err instanceof Error ? err.message : "An unexpected error occurred";
-        setError(msg);
-      }
-    } finally {
+      const response = await api.sendChatMessage(
+        currentSession,
+        userMessageText,
+        selectedModel,
+        thinkingMode,
+        activeAgent.systemPrompt || undefined
+      );
+
       setIsLoading(false);
-      setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-        }
-      }, 60);
+      streamResponseIntoChat(response.response, response.search_results, response.search_query);
+      if (currentSession) loadLimits(currentSession);
+    } catch (err: any) {
+      setIsLoading(false);
+      console.error("Orchestrator error:", err);
+      const errorMsg = err?.message || "Unable to reach Zydrakon AI backend orchestrator. Please verify backend is running.";
+      streamResponseIntoChat(`⚠️ **Zydrakon AI Orchestrator Notice**: ${errorMsg}`);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("zydrakon_token");
-    localStorage.removeItem("zydrakon_user");
-    localStorage.removeItem("zydrakon_active_session");
-    setIsAuthenticated(false);
-    setCurrentUser(null);
-    setSessions([]);
-    setMessages([]);
-    setActiveSessionId(null);
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
   };
 
   const handleSelectAgent = (agentId: string) => {
     setSelectedAgentId(agentId);
     localStorage.setItem("zydrakon_agent", agentId);
-    setTimeout(() => textareaRef.current?.focus(), 60);
   };
 
-  const handleToggleThinkingMode = () => {
-    const nextVal = !thinkingMode;
-    setThinkingMode(nextVal);
-    if (nextVal && selectedModel === "zydrakon-free") {
-      setSelectedModel("zhipu-free"); // Switch to Gold automatically
+// Inline Markdown Formatter (Parses **bold**, `code`, and *italics* without raw asterisks)
+function formatMarkdownInline(text: string): React.ReactNode {
+  if (!text) return text;
+  const regex = /(\*\*.*?\*\*|`.*?`|\*.*?\*)/g;
+  const parts = text.split(regex);
+
+  return parts.map((part, idx) => {
+    if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
+      return (
+        <strong key={idx} className="font-bold text-white">
+          {part.slice(2, -2)}
+        </strong>
+      );
     }
-    setTimeout(() => textareaRef.current?.focus(), 60);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Enter key submits the text (without Shift), Shift+Enter adds newline
-    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-      e.preventDefault();
-      if (!isLoading && inputText.trim()) {
-        handleSend();
-      }
+    if (part.startsWith("`") && part.endsWith("`") && part.length >= 2) {
+      return (
+        <code key={idx} className="px-1.5 py-0.5 rounded bg-zinc-800 text-orange-400 font-mono text-xs border border-zinc-700/60">
+          {part.slice(1, -1)}
+        </code>
+      );
     }
-  };
-
-  const selectSession = (sessionId: string) => {
-    setActiveSessionId(sessionId);
-    localStorage.setItem("zydrakon_active_session", sessionId);
-  };
-
-  // Helper parser for markdown tags
-  const parseInlineText = (text: string) => {
-    const tokens = text.split(/(\*\*[^*]+\*\*|`[^`\n]+`|\[[^\]]+\]\([^)]+\))/g);
-    return tokens.map((token, idx) => {
-      if (token.startsWith("**") && token.endsWith("**")) {
-        return <strong key={idx} className="font-semibold text-black dark:text-white">{token.slice(2, -2)}</strong>;
-      }
-      if (token.startsWith("`") && token.endsWith("`")) {
-        return (
-          <code key={idx} className="bg-[#f1ede4] dark:bg-[#2e2e2a] border border-[var(--border-color)] text-[#cc5a37] dark:text-[#e26e4a] px-1.5 py-0.5 rounded font-mono text-xs md:text-sm">
-            {token.slice(1, -1)}
-          </code>
-        );
-      }
-      if (token.startsWith("[") && token.includes("](") && token.endsWith(")")) {
-        const linkMatch = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-        if (linkMatch) {
-          const [, label, url] = linkMatch;
-          return (
-            <a 
-              key={idx} 
-              href={url} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-[var(--accent-color)] hover:underline inline-flex items-center gap-0.5 font-medium"
-            >
-              {label}
-            </a>
-          );
-        }
-      }
-      return token;
-    });
-  };
-
-  const formatMessageContent = (content: string) => {
-    let normalizedContent = content;
-    // Auto-close unclosed markdown code blocks (e.g. if the LLM output got truncated)
-    const occurrences = (normalizedContent.match(/```/g) || []).length;
-    if (occurrences % 2 !== 0) {
-      normalizedContent += "\n```";
+    if (part.startsWith("*") && part.endsWith("*") && part.length >= 2) {
+      return (
+        <em key={idx} className="italic text-zinc-300">
+          {part.slice(1, -1)}
+        </em>
+      );
     }
-    const parts = normalizedContent.split(/(```[\s\S]*?```)/g);
-    
-    return parts.map((part, index) => {
-      if (part.startsWith("```") && part.endsWith("```")) {
-        const match = part.match(/```(\w*)([\s\S]*?)```/);
-        const language = (match ? match[1] : "").trim().toLowerCase();
-        const code = match ? match[2].trim() : part.slice(3, -3).trim();
-        if (language === "mermaid") {
-          return <Mermaid key={index} chart={code} isDarkMode={isDarkMode} />;
+    return part;
+  });
+}
+
+  // Helper renderer for Markdown content
+  const renderMessageContent = (content: string) => {
+    if (!content) return null;
+
+    const blocks = content.split("```");
+    return blocks.map((block, index) => {
+      if (index % 2 === 1) {
+        // Code Block
+        const firstLineEnd = block.indexOf("\n");
+        let language = "";
+        let code = block;
+        if (firstLineEnd !== -1) {
+          language = block.slice(0, firstLineEnd).trim();
+          code = block.slice(firstLineEnd + 1);
         }
-        if (language === "svg" || code.trim().startsWith("<svg")) {
-          return (
-            <div 
-              key={index}
-              className="my-4 p-4 flex justify-center items-center overflow-x-auto select-none max-w-full"
-            >
-              <div 
-                className="w-full flex justify-center max-w-full [&>svg]:max-w-full [&>svg]:h-auto select-none"
-                dangerouslySetInnerHTML={{ __html: code }}
-              />
-            </div>
-          );
+
+        const langLower = language.toLowerCase();
+        if (langLower.startsWith("mermaid")) {
+          return <Mermaid key={index} chart={code.trim()} />;
         }
-        return <CodeBlock key={index} code={code} language={language} />;
+        if (langLower === "architecture" || langLower === "cloud" || langLower === "system-design") {
+          return <ArchitectureDiagram key={index} codeRaw={code.trim()} />;
+        }
+        return <CodeBlock key={index} code={code.trim()} language={language} />;
       }
 
-      const lines = part.split("\n");
+      // Process lines inside standard text block
+      const rawLines = block.split("\n");
       const elements: React.ReactNode[] = [];
-      let currentList: { type: "ul" | "ol"; items: string[] } | null = null;
-      let currentParagraph: string[] = [];
-      let currentTable: string[][] | null = null;
+      let i = 0;
 
-      const flushParagraph = (key: string) => {
-        if (currentParagraph.length > 0) {
-          elements.push(
-            <p key={key} className="mb-4 text-slate-800 dark:text-slate-200 leading-relaxed text-sm md:text-md">
-              {parseInlineText(currentParagraph.join(" "))}
-            </p>
-          );
-          currentParagraph = [];
-        }
-      };
-
-      const flushList = (key: string) => {
-        if (currentList) {
-          const ListTag = currentList.type === "ol" ? "ol" : "ul";
-          const listClass = currentList.type === "ol" 
-            ? "list-decimal pl-6 mb-4 space-y-1.5 text-slate-800 dark:text-slate-200 text-sm md:text-md" 
-            : "list-disc pl-6 mb-4 space-y-1.5 text-slate-800 dark:text-slate-200 text-sm md:text-md";
-          elements.push(
-            <ListTag key={key} className={listClass}>
-              {currentList.items.map((item, itemIdx) => (
-                <li key={itemIdx}>{parseInlineText(item)}</li>
-              ))}
-            </ListTag>
-          );
-          currentList = null;
-        }
-      };
-
-      const flushTable = (key: string) => {
-        if (currentTable && currentTable.length > 0) {
-          let headers: string[] = [];
-          let rows: string[][] = [];
-          
-          if (currentTable.length >= 2 && currentTable[1].every(cell => /^:?-+:?$/.test(cell))) {
-            headers = currentTable[0];
-            rows = currentTable.slice(2);
-          } else {
-            headers = currentTable[0];
-            rows = currentTable.slice(1);
-          }
-
-          rows = rows.filter(row => row.length > 0 && row.some(cell => cell !== ""));
-
-          elements.push(
-            <div key={key} className="my-4 overflow-x-auto rounded-xl border border-[var(--border-color)] shadow-sm bg-[var(--bg-sidebar)]">
-              <table className="min-w-full divide-y divide-[var(--border-color)] text-left text-xs md:text-sm font-sans">
-                <thead className="bg-slate-50 dark:bg-[#1a1a17] text-slate-800 dark:text-slate-200 font-semibold select-none">
-                  <tr>
-                    {headers.map((header, hIdx) => (
-                      <th key={hIdx} className="px-4 py-3 border-b border-[var(--border-color)]">
-                        {parseInlineText(header)}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border-color)]/60 text-slate-700 dark:text-slate-300">
-                  {rows.map((row, rIdx) => (
-                    <tr key={rIdx} className="hover:bg-slate-100/40 dark:hover:bg-[#252522]/40 transition-colors">
-                      {Array.from({ length: headers.length }).map((_, cIdx) => (
-                        <td key={cIdx} className="px-4 py-3 align-top whitespace-normal break-words">
-                          {parseInlineText(row[cIdx] || "")}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          );
-          currentTable = null;
-        }
-      };
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+      while (i < rawLines.length) {
+        const line = rawLines[i];
         const trimmed = line.trim();
 
-        // 1. Empty lines trigger flushes
-        if (trimmed === "") {
-          flushParagraph(`p-${i}`);
-          flushList(`l-${i}`);
-          flushTable(`t-${i}`);
-          continue;
-        }
-
-        // 2. Table row detection
-        const isTableRow = trimmed.startsWith("|") && trimmed.endsWith("|");
-        if (isTableRow) {
-          flushParagraph(`p-${i}`);
-          flushList(`l-${i}`);
-          
-          const cells = trimmed
-            .split("|")
-            .slice(1, -1)
-            .map(c => c.trim());
-            
-          if (!currentTable) {
-            currentTable = [];
+        // Check if line starts a markdown table (starts and ends with |)
+        if (trimmed.startsWith("|") && trimmed.endsWith("|") && trimmed.length > 2) {
+          const tableLines: string[] = [];
+          while (i < rawLines.length && rawLines[i].trim().startsWith("|") && rawLines[i].trim().endsWith("|")) {
+            tableLines.push(rawLines[i].trim());
+            i++;
           }
-          currentTable.push(cells);
-          continue;
-        } else {
-          flushTable(`t-${i}`);
+
+          if (tableLines.length >= 2) {
+            const headerRow = tableLines[0].split("|").slice(1, -1).map(c => c.trim());
+            const dataRows = tableLines
+              .slice(1)
+              .filter(r => !/^\|[\s-:]+(\|[\s-:]+)*\|$/.test(r))
+              .map(r => r.split("|").slice(1, -1).map(c => c.trim()));
+
+            elements.push(
+              <div key={`table-${i}`} className="my-4 overflow-x-auto rounded-xl border border-zinc-800 bg-[#09090b] shadow-md scrollbar-thin select-text">
+                <table className="w-full text-left text-xs text-zinc-200 border-collapse">
+                  <thead className="bg-[#121215] text-white border-b border-zinc-800 uppercase tracking-wider font-semibold">
+                    <tr>
+                      {headerRow.map((cell, cIdx) => (
+                        <th key={cIdx} className="px-4 py-3 border-r last:border-r-0 border-zinc-800/80">
+                          {formatMarkdownInline(cell)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/80">
+                    {dataRows.map((row, rIdx) => (
+                      <tr key={rIdx} className="hover:bg-[#151518] transition-colors">
+                        {row.map((cell, cIdx) => (
+                          <td key={cIdx} className="px-4 py-2.5 border-r last:border-r-0 border-zinc-800/80">
+                            {formatMarkdownInline(cell)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+            continue;
+          }
         }
 
-        // 3. Headings
-        const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
-        if (headingMatch) {
-          flushParagraph(`p-${i}`);
-          flushList(`l-${i}`);
-          const level = headingMatch[1].length;
-          const text = headingMatch[2];
-          const headingClass = level === 1 ? "text-xl font-bold text-black dark:text-white mb-3 mt-5"
-                             : level === 2 ? "text-lg font-bold text-black dark:text-white mb-2 mt-4"
-                             : level === 3 ? "text-md font-bold text-black dark:text-white mb-2 mt-4"
-                             : "text-sm font-bold text-black dark:text-white mb-1.5 mt-3";
-          const HeadingTag = `h${level}` as any;
+        if (!trimmed) {
+          elements.push(<div key={i} className="h-1" />);
+          i++;
+          continue;
+        }
+
+        // Header matching for any level # to ######
+        const headerMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
+        if (headerMatch) {
+          const level = headerMatch[1].length;
+          const text = headerMatch[2];
+          if (level === 1) {
+            elements.push(<h1 key={i} className="text-xl font-bold text-orange-400 mt-3 mb-1">{formatMarkdownInline(text)}</h1>);
+          } else if (level === 2) {
+            elements.push(<h2 key={i} className="text-lg font-semibold text-white mt-2 mb-1">{formatMarkdownInline(text)}</h2>);
+          } else {
+            elements.push(<h3 key={i} className="text-sm font-bold text-zinc-100 mt-2 mb-1">{formatMarkdownInline(text)}</h3>);
+          }
+          i++;
+          continue;
+        }
+
+        // Bullet List items
+        if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
           elements.push(
-            <HeadingTag key={`h-${i}`} className={headingClass}>
-              {parseInlineText(text)}
-            </HeadingTag>
+            <li key={i} className="text-sm leading-relaxed text-zinc-200 ml-4 list-disc">
+              {formatMarkdownInline(trimmed.slice(2))}
+            </li>
           );
+          i++;
           continue;
         }
 
-        // 4. Bullet points (Unordered)
-        const ulMatch = line.match(/^[-*•]\s+(.*)$/);
-        if (ulMatch) {
-          flushParagraph(`p-${i}`);
-          if (currentList && currentList.type !== "ul") {
-            flushList(`l-${i}`);
-          }
-          if (!currentList) {
-            currentList = { type: "ul", items: [] };
-          }
-          currentList.items.push(ulMatch[1]);
-          continue;
-        }
-
-        // 5. Ordered list points (1. Item)
-        const olMatch = line.match(/^(\d+)\.\s+(.*)$/);
-        if (olMatch) {
-          flushParagraph(`p-${i}`);
-          if (currentList && currentList.type !== "ol") {
-            flushList(`l-${i}`);
-          }
-          if (!currentList) {
-            currentList = { type: "ol", items: [] };
-          }
-          currentList.items.push(olMatch[2]);
-          continue;
-        }
-
-        // 6. Normal text line
-        flushList(`l-${i}`);
-        currentParagraph.push(line);
+        // Normal text paragraph
+        elements.push(
+          <p key={i} className="text-sm leading-relaxed text-zinc-200">
+            {formatMarkdownInline(line)}
+          </p>
+        );
+        i++;
       }
 
-      flushParagraph(`p-end`);
-      flushList(`l-end`);
-      flushTable(`t-end`);
-
-      return <div key={index}>{elements}</div>;
+      return <div key={index} className="space-y-2">{elements}</div>;
     });
   };
 
-  if (isAuthChecking) {
-    return <div className="h-screen w-screen bg-[var(--bg-main)] flex items-center justify-center text-[var(--accent-color)] animate-pulse">Loading...</div>;
+  if (showWelcomeScreen) {
+    return <WelcomeScreen onEnter={() => setShowWelcomeScreen(false)} />;
+  }
+
+  if (showFullLoginPage) {
+    return (
+      <LoginPage
+        onSuccess={(user, token) => {
+          localStorage.setItem("zydrakon_token", token);
+          localStorage.setItem("zydrakon_user", JSON.stringify(user));
+          setIsAuthenticated(true);
+          setCurrentUser(user);
+          setShowFullLoginPage(false);
+        }}
+        onContinueGuest={() => setShowFullLoginPage(false)}
+      />
+    );
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-200">
-      
-      {!isAuthenticated && (
-        <LoginModal onSuccess={(token) => {
-          setIsAuthenticated(true);
-          loadSessions();
-        }} />
+    <div className="flex h-screen bg-[#000000] text-zinc-100 overflow-hidden font-sans select-none">
+      {/* Sidebar Overlay on mobile */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-20 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
 
-      {/* 1. Collapsible Sidebar */}
-      <aside 
-        className={`flex-shrink-0 flex flex-col h-full bg-[var(--bg-sidebar)] border-r border-[var(--border-color)] transition-all duration-300 ease-in-out z-30 ${
-          sidebarOpen ? "w-72" : "w-0 overflow-hidden border-r-0"
+      {/* Pitch Black Sidebar */}
+      <aside
+        className={`fixed md:static inset-y-0 left-0 z-30 w-72 bg-[#09090b] border-r border-zinc-800/80 transform transition-transform duration-300 ease-in-out flex flex-col ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0 md:w-0 md:opacity-0 md:overflow-hidden"
         }`}
       >
-        <div className="w-72 flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-[var(--border-color)]">
-            <span className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">Zydrakon AI</span>
-            <button 
-              onClick={() => setSidebarOpen(false)}
-              className="p-1 rounded-lg text-[var(--text-secondary)] hover:bg-slate-200 dark:hover:bg-[#32322e] hover:text-[var(--text-main)]"
-              title="Close sidebar"
-            >
-              <PanelLeftClose className="w-4 h-4" />
-            </button>
+        {/* Sidebar Header */}
+        <div className="p-4 flex items-center justify-between border-b border-zinc-800/80">
+          <div className="flex items-center gap-2.5">
+            <ZydrakonLogo size={32} />
+            <div>
+              <h1 className="font-bold text-sm text-white tracking-wide">Zydrakon AI</h1>
+              <span className="text-[10px] text-zinc-500 block -mt-0.5">Pitch Black Ultra</span>
+            </div>
           </div>
-
-          {/* New Chat + Agents Buttons */}
-          <div className="p-4 space-y-2">
-            <button
-              onClick={createNewSession}
-              className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl border border-[var(--border-color)] hover:bg-[#eae8e2] dark:hover:bg-[#2d2d2a] font-medium text-sm transition-colors text-[var(--text-main)] shadow-sm bg-[var(--bg-card)]"
-            >
-              <span className="flex items-center gap-2">
-                <Plus className="w-4 h-4 text-[var(--accent-color)]" />
-                New Chat
-              </span>
-              <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-sans text-[var(--text-secondary)] border border-[var(--border-color)] rounded bg-[var(--bg-sidebar)]">
-                Ctrl K
-              </kbd>
-            </button>
-
-            {/* Agents Button */}
-            <button
-              onClick={() => setShowAgentsPanel(true)}
-              className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl border border-[var(--border-color)] hover:bg-[#eae8e2] dark:hover:bg-[#2d2d2a] font-medium text-sm transition-colors text-[var(--text-main)] shadow-sm bg-[var(--bg-card)] group"
-            >
-              <span className="flex items-center gap-2">
-                <Bot className="w-4 h-4 transition-colors" style={{ color: activeAgent.color }} />
-                Agents
-              </span>
-              <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold text-white"
-                style={{ backgroundColor: activeAgent.color }}
-              >
-                {activeAgent.avatarLetter}
-              </span>
-            </button>
-          </div>
-
-          {/* Sessions List */}
-          <div className="flex-1 overflow-y-auto px-3 space-y-1">
-            {sessions.map(s => {
-              const isActive = s.id === activeSessionId;
-              return (
-                <div
-                  key={s.id}
-                  onClick={() => selectSession(s.id)}
-                  className={`group flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-colors ${
-                    isActive 
-                      ? "bg-[#eae8e2] dark:bg-[#2d2d2a] text-black dark:text-white font-medium" 
-                      : "hover:bg-[#f1ede4] dark:hover:bg-[#252522] text-[var(--text-secondary)] hover:text-[var(--text-main)]"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <MessageSquare className="w-4 h-4 flex-shrink-0 text-slate-500" />
-                    <span className="text-sm truncate">
-                      {s.id.length > 10 ? `Session-${s.id.slice(0, 8)}` : s.id}
-                    </span>
-                  </div>
-                  <button
-                    onClick={(e) => deleteSession(e, s.id)}
-                    className="p-1 rounded text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 hover:bg-slate-200 dark:hover:bg-[#3b3b38] transition-all"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="md:hidden p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400"
+          >
+            <PanelLeftClose className="w-4 h-4" />
+          </button>
         </div>
-      </aside>
 
-      {/* 2. Main Window */}
-      <div className="flex-1 flex flex-col h-full min-w-0 bg-[var(--bg-main)]">
-        {/* Navbar Header */}
-        <header className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-main)]/90 backdrop-blur z-20">
-          <div className="flex items-center gap-3">
-            {!sidebarOpen && (
+        {/* Quick Action Buttons */}
+        <div className="p-3 space-y-2 border-b border-zinc-800/80">
+          <button
+            onClick={() => {
+              setMainView("chat");
+              handleNewSession();
+            }}
+            className="w-full py-2.5 px-3.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-orange-500/50 hover:bg-zinc-850 text-white font-medium text-xs transition-all flex items-center justify-between group cursor-pointer"
+          >
+            <span className="flex items-center gap-2">
+              <Plus className="w-4 h-4 text-orange-400 group-hover:rotate-90 transition-transform" />
+              New Chat
+            </span>
+            <span className="text-[10px] bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-400 font-mono">⌘N</span>
+          </button>
+
+          <button
+            onClick={() => setShowAgentsPanel(true)}
+            className="w-full py-2 px-3 rounded-xl bg-zinc-950 border border-zinc-800/80 hover:border-zinc-700 text-xs text-zinc-300 transition-all flex items-center justify-between cursor-pointer"
+          >
+            <span className="flex items-center gap-2">
+              <Bot className="w-3.5 h-3.5 text-blue-400" />
+              <span>Agents Persona</span>
+            </span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold text-white" style={{ backgroundColor: activeAgent.color }}>
+              {activeAgent.name.split(" ")[0]}
+            </span>
+          </button>
+        </div>
+
+        {/* Sessions List */}
+        <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin">
+          <div className="px-3 py-1.5 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider flex items-center justify-between">
+            <span>Recent Conversations</span>
+            {sessions.length > 0 && (
               <button
-                onClick={() => setSidebarOpen(true)}
-                className="p-1.5 rounded-lg border border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-slate-100 dark:hover:bg-[#252522] hover:text-[var(--text-main)] mr-2"
-                title="Open sidebar"
+                onClick={handleDeleteAllSessions}
+                className="text-[10px] text-zinc-500 hover:text-red-400 font-normal normal-case transition-colors flex items-center gap-1 cursor-pointer"
+                title="Clear all sessions"
               >
-                <PanelLeft className="w-4.5 h-4.5" />
+                <Trash2 className="w-3 h-3" /> Clear All
               </button>
             )}
-
-            {/* Clean Model Chooser Link */}
-            <div className="relative flex items-center gap-1 text-sm font-semibold text-[var(--text-secondary)]">
-              <span>Model:</span>
-              <select
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                className="appearance-none bg-transparent hover:text-[var(--text-main)] font-semibold py-1 pl-1 pr-6 cursor-pointer focus:outline-none focus:ring-0 text-[var(--accent-color)] font-mono text-xs md:text-sm"
-              >
-                {FREE_MODELS.map(m => {
-                  const isDisabledByDeepResearch = thinkingMode && m.id === "zydrakon-free";
-                  const isLockedForUser = m.id === "zydrakon-premium" && (currentUser?.tier === "gold" || (currentUser?.allowed_models && !currentUser.allowed_models.includes("zydrakon-premium")));
-                  const isDisabled = isDisabledByDeepResearch || isLockedForUser;
-
-                  return (
-                    <option 
-                      key={m.id} 
-                      value={m.id} 
-                      disabled={isDisabled}
-                      className="bg-[var(--bg-main)] text-[var(--text-main)] font-sans disabled:opacity-40"
-                    >
-                      {isLockedForUser ? "🔒 " : ""}{m.name}{isLockedForUser ? " (Locked)" : isDisabledByDeepResearch ? " (Not supported for Deep Research)" : ""}
-                    </option>
-                  );
-                })}
-              </select>
-              <Cpu className="w-3 h-3 text-[var(--text-secondary)] absolute right-0 top-2.5 pointer-events-none" />
-            </div>
-
-            {/* Active Agent Badge */}
-            {activeAgent.id !== "general-assistant" && (() => {
-              const ActiveAgentIcon = activeAgent.icon;
-              return (
-                <button
-                  onClick={() => setShowAgentsPanel(true)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-all hover:opacity-80 cursor-pointer"
-                  style={{
-                    borderColor: `${activeAgent.color}40`,
-                    color: activeAgent.color,
-                    backgroundColor: `${activeAgent.color}10`,
-                  }}
-                  title={`Active agent: ${activeAgent.name}`}
-                >
-                  <ActiveAgentIcon className="w-3.5 h-3.5" />
-                  <span className="hidden md:inline">{activeAgent.name}</span>
-                </button>
-              );
-            })()}
           </div>
-
-          <div className="flex items-center gap-4">
-            {/* Usage Indicator Badge */}
-            {limits && (
-              <div 
-                className="text-[10px] font-mono text-[var(--text-secondary)] bg-[#f3f1eb] dark:bg-[#222220] border border-[var(--border-color)] px-2.5 py-1.5 rounded-lg flex items-center gap-1.5"
-                title={`RPM remaining: ${limits.rpm_remaining}/${limits.rpm_limit}`}
+          {sessions.map((s) => {
+            const isActive = activeSessionId === s.id && mainView === "chat";
+            return (
+              <div
+                key={s.id}
+                onClick={() => {
+                  setMainView("chat");
+                  setActiveSessionId(s.id);
+                }}
+                className={`group flex items-center justify-between p-2.5 rounded-xl text-xs cursor-pointer transition-all ${
+                  isActive
+                    ? "bg-zinc-850 text-white font-medium border border-zinc-800"
+                    : "text-zinc-400 hover:bg-zinc-900/80 hover:text-zinc-200"
+                }`}
               >
-                <Zap className="w-3.5 h-3.5 text-[var(--accent-color)] animate-pulse" />
-                <span>API Usage: <strong className="text-[var(--text-main)]">{limits.daily_limit - limits.daily_remaining}</strong>/{limits.daily_limit}</span>
+                <div className="flex items-center gap-2 truncate">
+                  <MessageSquare className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-orange-400" : "text-zinc-600"}`} />
+                  <span className="truncate">Session {s.id.slice(-6)}</span>
+                </div>
+                <button
+                  onClick={(e) => handleDeleteSession(s.id, e)}
+                  className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition-opacity"
+                  title="Delete chat"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
-            )}
+            );
+          })}
+        </div>
 
-
-
-            {/* Logout Button */}
-            {isAuthenticated && (
+        {/* Sidebar Footer / User Profile */}
+        <div className="p-3 border-t border-zinc-800/80 bg-[#060608]">
+          {isAuthenticated && currentUser ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400 text-xs font-bold">
+                  {currentUser.name ? currentUser.name[0].toUpperCase() : "U"}
+                </div>
+                <div className="truncate">
+                  <p className="text-xs font-medium text-white truncate">{currentUser.name}</p>
+                  <p className="text-[10px] text-zinc-500 truncate">{currentUser.email}</p>
+                </div>
+              </div>
               <button
-                onClick={handleLogout}
-                className="p-1.5 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-500 transition-colors"
-                title="Log out"
+                onClick={() => {
+                  localStorage.removeItem("zydrakon_token");
+                  localStorage.removeItem("zydrakon_user");
+                  setIsAuthenticated(false);
+                  setCurrentUser(null);
+                }}
+                className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-red-400 transition-colors"
+                title="Logout"
               >
                 <LogOut className="w-4 h-4" />
               </button>
-            )}
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowFullLoginPage(true)}
+              className="w-full py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs text-zinc-200 font-medium transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <User className="w-3.5 h-3.5 text-orange-400" />
+              <span>Sign In / Register</span>
+            </button>
+          )}
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col bg-[#000000] relative overflow-hidden">
+        {/* Top Header Navigation Bar */}
+        <header className="h-14 px-4 md:px-6 bg-[#09090b] border-b border-zinc-800/80 flex items-center justify-between z-10">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+              title={sidebarOpen ? "Close Sidebar" : "Open Sidebar"}
+            >
+              <PanelLeft className="w-4 h-4 text-orange-400" />
+            </button>
+
+            {/* Mode Switcher Tabs */}
+            <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800/80">
+              <button
+                onClick={() => setMainView("chat")}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-zinc-800 text-white shadow-sm flex items-center gap-1.5"
+              >
+                <MessageSquare className="w-3.5 h-3.5 text-orange-400" />
+                <span>AI Chat</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Model Switcher & Agent Tag */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowAgentsPanel(true)}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs hover:border-zinc-700 transition-all"
+            >
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: activeAgent.color }} />
+              <span className="text-zinc-300 font-medium">{activeAgent.name}</span>
+            </button>
+
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-medium text-orange-400 focus:outline-none focus:border-orange-500 cursor-pointer"
+            >
+              {FREE_MODELS.map((m) => (
+                <option key={m.id} value={m.id} className="bg-zinc-900 text-zinc-200">
+                  {m.name}
+                </option>
+              ))}
+            </select>
           </div>
         </header>
 
-        {/* Conversation Message Pane */}
-        <main className="flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-8 scrollbar-thin">
-          <div className="max-w-5xl mx-auto space-y-8">
-            
-            {messages.length === 0 ? (
-              // Claude-like central Welcoming screen
-              <div className="flex flex-col items-center justify-center pt-20 pb-8 text-center space-y-6">
-                <div className="relative">
-                  <div className="p-5 bg-[#f3f1eb] dark:bg-[#22221f] border border-[var(--border-color)] rounded-2xl shadow-sm">
-                    <Sparkles className="w-8 h-8 text-[var(--accent-color)]" />
+        {/* View Router: Chat vs Live Writer Studio */}
+        {mainView === "writer" ? (
+          <LiveAIWriter
+            selectedModel={selectedModel}
+            onSendToChat={(text) => {
+              setMainView("chat");
+              setInputText(`Here is my document text:\n\n${text}\n\nPlease analyze, polish, and enhance it further.`);
+            }}
+          />
+        ) : (
+          <div className="flex-1 flex flex-col relative overflow-hidden bg-[#000000]">
+            {/* Messages View */}
+            <div className="flex-1 overflow-y-auto scrollbar-thin select-text">
+              <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 space-y-6">
+              {messages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-6 my-12">
+                  <div className="mb-6">
+                    <ZydrakonLogo size={110} className="drop-shadow-[0_0_25px_rgba(249,115,22,0.25)]" />
                   </div>
-                </div>
-                
-                <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-black dark:text-white font-sans max-w-lg">
-                  How can I help you today?
-                </h2>
-                
-                <p className="max-w-md mx-auto text-xs md:text-sm text-[var(--text-secondary)]">
-                  Zydrakon AI is your premium intelligent assistant. Ask a question to get started.
-                </p>
+                  <h2 className="text-xl font-bold text-white mb-2">How can Zydrakon AI assist you today?</h2>
+                  <p className="text-xs text-zinc-400 max-w-md mb-6">
+                    Ask any question, write code, run live research, or switch to the Live AI Writer Studio for real-time document drafting.
+                  </p>
 
-                {/* Central Input Box */}
-                <div className="w-full max-w-xl pt-4">
-                  <div className="bg-[var(--bg-input)] border border-[var(--border-color)] rounded-2xl p-3 shadow-md focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 focus-within:border-[var(--accent-color)] transition-all">
-                    <textarea
-                      ref={textareaRef}
-                      value={inputText}
-                      onChange={(e) => setInputText(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      rows={2}
-                      placeholder="Ask anything..."
-                      className="w-full bg-transparent resize-none focus:outline-none text-[var(--text-main)] text-sm md:text-md placeholder-slate-400 min-h-[50px] max-h-[240px] pr-2"
-                      disabled={isLoading}
-                    />
-                    
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-[var(--border-color)]/50">
-                      <div className="flex items-center gap-3 text-xs text-[var(--text-secondary)]">
-                        <button 
-                          type="button" 
-                          className="p-1 rounded hover:bg-slate-100 dark:hover:bg-[#2e2e2a]"
-                          title="Attach files (Mock)"
-                        >
-                          <Paperclip className="w-4 h-4 text-slate-500" />
-                        </button>
-                        
-                        <button
-                          type="button"
-                          onClick={handleToggleThinkingMode}
-                          className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] font-semibold transition-all ${
-                            thinkingMode
-                              ? "bg-[var(--accent-color)] text-white border-[var(--accent-color)] shadow-sm"
-                              : "border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[#eae8e2] dark:hover:bg-[#2d2d2a]"
-                          }`}
-                        >
-                          <Sparkles className={`w-3 h-3 ${thinkingMode ? "animate-pulse" : ""}`} />
-                          <span>Deep Research {thinkingMode ? "ON" : "OFF"}</span>
-                        </button>
-                        
-                        <span className="text-[10px] font-mono opacity-80 uppercase tracking-wider hidden sm:block">SQLite Duplicate Filter Active</span>
-                      </div>
-                      
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg w-full">
+                    {[
+                      "✍️ Write a Next.js 16 app tutorial",
+                      "💻 Create a Python web scraper",
+                      "🧬 Explain mitochondrial DNA replication",
+                      "📈 Draft a SaaS product launch plan",
+                    ].map((promptText, i) => (
                       <button
-                        onClick={handleSend}
-                        disabled={isLoading || !inputText.trim()}
-                        className="p-2 rounded-xl text-white disabled:bg-slate-200 dark:disabled:bg-[#252522] disabled:text-slate-400 bg-[var(--accent-color)] hover:bg-[var(--accent-hover)] transition-colors cursor-pointer shadow-sm"
+                        key={i}
+                        onClick={() => {
+                          setInputText(promptText.slice(3));
+                        }}
+                        className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800/90 hover:border-orange-500/40 hover:bg-zinc-900 text-left text-xs text-zinc-300 hover:text-white transition-all cursor-pointer"
                       >
-                        <Send className="w-3.5 h-3.5" />
+                        {promptText}
                       </button>
-                    </div>
+                    ))}
                   </div>
                 </div>
+              ) : (
+                messages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex flex-col ${
+                      msg.role === "user" ? "items-end" : "items-start"
+                    } animate-message`}
+                  >
+                    <div className="flex items-center gap-2 mb-1.5 px-1">
+                      <span className="text-[11px] font-semibold text-zinc-400">
+                        {msg.role === "user" ? "You" : activeAgent.name}
+                      </span>
+                      <span className="text-[10px] text-zinc-600">{msg.timestamp}</span>
+                    </div>
 
-                {/* Claude-style central prompts */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl pt-8">
-                  {[
-                    "Write a Python script to sort a list using quicksort",
-                    "Explain quantum computing in simple terms",
-                    "What is SQLite database caching?",
-                    "Draft a professional reply to request an extension"
-                  ].map((prompt, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        setInputText(prompt);
-                        setTimeout(() => textareaRef.current?.focus(), 60);
-                      }}
-                      className="flex items-center justify-between text-left p-3.5 bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-[var(--accent-color)]/40 rounded-xl hover:bg-[#eae8e2]/50 dark:hover:bg-[#252522]/50 text-xs md:text-sm text-[var(--text-secondary)] hover:text-[var(--text-main)] transition-all shadow-sm"
-                    >
-                      <span className="line-clamp-2 pr-2 leading-relaxed">{prompt}</span>
-                      <ArrowRight className="w-4 h-4 text-[var(--accent-color)] flex-shrink-0" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              // Active Conversation Thread
-              <>
-                {messages.map((msg, i) => {
-                  const isUser = msg.role === "user";
-                  return (
                     <div
-                      key={i}
-                      className={`flex items-start gap-4 animate-message ${isUser ? "justify-end" : "justify-start"}`}
-                    >
-                      {/* Avatar initial symbol — agent-colored */}
-                      {!isUser && (
-                        <div
-                          className="w-8 h-8 rounded-full border text-[11px] font-bold flex items-center justify-center flex-shrink-0 shadow-sm select-none"
-                          style={{
-                            borderColor: `${activeAgent.color}40`,
-                            backgroundColor: `${activeAgent.color}12`,
-                            color: activeAgent.color,
-                          }}
-                        >
-                          {activeAgent.avatarLetter}
-                        </div>
-                      )}
-                      
-                      <div className={`flex flex-col max-w-[85%] ${isUser ? "items-end" : "items-start"} space-y-1.5`}>
-                        {isUser ? (
-                          // User message bubble box
-                          <div className="bg-[var(--bg-user-msg)] text-[var(--text-main)] rounded-2xl px-5 py-3 border border-[var(--border-color)] shadow-sm">
-                            <p className="whitespace-pre-line leading-relaxed text-sm md:text-md">
-                              {msg.content}
-                            </p>
-                          </div>
-                        ) : (
-                          // Assistant message rendered plain text in clean sans-serif font (Claude/ChatGPT Style!)
-                          <div className="font-sans text-[var(--text-main)] pr-4 w-full leading-relaxed text-sm md:text-md">
-                            {msg.search_results && msg.search_results.length > 0 && (
-                              <div className="mb-4 w-full">
-                                <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)] mb-2 select-none">
-                                  <Globe className="w-3.5 h-3.5 text-[var(--accent-color)]" />
-                                  <span>Sources ({msg.search_results.length})</span>
-                                  {msg.search_query && (
-                                    <span className="text-[10px] font-normal font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#22221f] border border-[var(--border-color)]">
-                                      Search: &quot;{msg.search_query}&quot;
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                  {msg.search_results.map((src, idx) => {
-                                    let hostname = "";
-                                    try {
-                                      hostname = new URL(src.url).hostname.replace("www.", "");
-                                    } catch {
-                                      hostname = "link";
-                                    }
-                                    return (
-                                      <a
-                                        key={idx}
-                                        href={src.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        title={`${src.title}\n\n${src.snippet}`}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border-color)] bg-[#fdfcfb] dark:bg-[#1c1c1a] hover:bg-[#eae8e2] dark:hover:bg-[#2d2d2a] text-xs transition-all max-w-[200px] text-[var(--text-main)] group"
-                                      >
-                                        <span className="w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[9px] font-bold text-[var(--accent-color)] shrink-0">
-                                          {idx + 1}
-                                        </span>
-                                        <span className="truncate font-sans font-medium hover:underline flex-1">{hostname}</span>
-                                        <ExternalLink className="w-3 h-3 text-[var(--text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity" />
-                                      </a>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-                            {formatMessageContent(msg.content)}
-                          </div>
-                        )}
-
-                        {/* Metadata row */}
-                        <div className="flex items-center gap-2.5 text-[9px] font-mono text-[var(--text-secondary)] select-none">
-                          <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        </div>
-                      </div>
-
-                      {/* User Avatar */}
-                      {isUser && (
-                        <div className="w-8 h-8 rounded-full border border-[var(--border-color)] bg-[var(--bg-sidebar)] text-[11px] font-bold text-[var(--text-secondary)] flex items-center justify-center flex-shrink-0 shadow-sm select-none">
-                          U
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {/* ═══ Premium Agent-Aware Loading Animation ═══ */}
-                {isLoading && (() => {
-                  const statusLabels: Record<string, string> = {
-                    "software-dev-tutor": "Compiling knowledge...",
-                    "science-tutor": "Running experiments...",
-                    "biology-tutor": "Sequencing DNA...",
-                    "microbiology-tutor": "Culturing samples...",
-                    "project-manager": "Planning sprint...",
-                    "product-owner": "Mapping roadmap...",
-                    "deep-research": "Researching deeply...",
-                    "ppt-maker": "Building slides...",
-                    "general-assistant": "Thinking...",
-                  };
-
-                  return (
-                    <div className="flex items-start gap-4 justify-start animate-message">
-                      {/* Fluid Iridescent Orb Video Loader */}
-                      <div className="relative flex-shrink-0 mt-0.5">
-                        <AgentLoader isDarkMode={isDarkMode} color={activeAgent.color} size={52} />
-                      </div>
-
-                      <div className="flex flex-col gap-2.5 min-w-[260px] max-w-sm select-none">
-                        {/* Agent name + animated dots */}
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: activeAgent.color }}>
-                            {activeAgent.name}
-                          </span>
-                          <span className="flex gap-0.5">
-                            {[0, 1, 2].map(i => (
-                              <span key={i} className="w-1 h-1 rounded-full bounce-dot" style={{ backgroundColor: activeAgent.color, animationDelay: `${i * 0.15}s` }} />
-                            ))}
-                          </span>
-                        </div>
-
-                        {/* Status label */}
-                        <div className="flex items-center gap-2 text-xs font-mono">
-                          <span className="font-semibold transition-all duration-500" style={{ color: activeAgent.color }}>
-                            {thinkingMode
-                              ? loadingPhase === 0
-                                ? '🔍 Searching the web...'
-                                : loadingPhase === 1
-                                ? '📖 Reading sources...'
-                                : '🧠 Reasoning & composing...'
-                              : statusLabels[activeAgent.id] || "Thinking..."}
-                          </span>
-                        </div>
-
-                        {/* Deep Research phase pills */}
-                        {thinkingMode && (
-                          <div className="flex items-center gap-1.5">
-                            {(['Search', 'Read', 'Reason'] as const).map((label, i) => (
-                              <span
-                                key={label}
-                                className={`text-[9px] font-mono px-2 py-0.5 rounded-full border transition-all duration-500 ${
-                                  loadingPhase >= i
-                                    ? 'border-transparent shadow-sm'
-                                    : 'border-[var(--border-color)] text-[var(--text-secondary)] opacity-30'
-                                }`}
-                                style={loadingPhase >= i ? {
-                                  backgroundColor: `${activeAgent.color}20`,
-                                  borderColor: `${activeAgent.color}50`,
-                                  color: activeAgent.color,
-                                } : undefined}
-                              >
-                                {label}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Shimmer skeleton lines */}
-                        <div className="space-y-2 pt-0.5">
-                          {[92, 75, 55].map((w, i) => (
-                            <div
-                              key={i}
-                              className="h-2 rounded-full loader-shimmer"
-                              style={{ width: `${w}%`, animationDelay: `${i * 200}ms` }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Network / Integration Errors */}
-                {error && (
-                  <div className="flex items-center gap-3 p-4 bg-red-950/20 border border-red-900/30 text-red-200 rounded-xl text-xs md:text-sm shadow-sm max-w-xl mx-auto">
-                    <ShieldAlert className="w-5 h-5 text-red-400 flex-shrink-0" />
-                    <div>
-                      <strong>System Error:</strong> {error}
-                    </div>
-                  </div>
-                )}
-
-                {/* Rate Limiting alert */}
-                {rateLimitError && (
-                  <div className="flex flex-col gap-3 p-4 bg-orange-950/20 border border-orange-900/30 text-orange-200 rounded-xl text-xs md:text-sm shadow-sm max-w-xl mx-auto">
-                    <div className="flex items-center gap-3">
-                      <ShieldAlert className="w-5 h-5 text-orange-400 flex-shrink-0" />
-                      <div>
-                        <strong>Rate Limit Reached:</strong> {rateLimitError.message}
-                      </div>
-                    </div>
-                    {rateLimitError.retryAfter && (
-                      <div className="flex items-center gap-1.5 text-[10px] font-mono text-orange-400/80 bg-orange-950/40 px-2 rounded-md self-start border border-orange-900/10">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>Resets at: {new Date(rateLimitError.retryAfter).toLocaleString()}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div ref={messagesEndRef} />
-              </>
-            )}
-
-          </div>
-        </main>
-
-        {/* 3. Floating Bottom Input Card (Only shown when messages exist) */}
-        {messages.length > 0 && (
-          <footer className="p-4 bg-[var(--bg-main)]">
-            <div className="max-w-5xl mx-auto">
-              <div className="bg-[var(--bg-input)] border border-[var(--border-color)] rounded-2xl p-3 shadow-md focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 focus-within:border-[var(--accent-color)] transition-all">
-                <textarea
-                  ref={textareaRef}
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  rows={1}
-                  placeholder="Ask anything..."
-                  className="w-full bg-transparent resize-none focus:outline-none text-[var(--text-main)] text-sm md:text-md placeholder-slate-400 min-h-[24px] max-h-[200px] pr-2 scrollbar-thin"
-                  disabled={isLoading}
-                />
-                
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-[var(--border-color)]/50">
-                  <div className="flex items-center gap-3 text-xs text-[var(--text-secondary)] select-none">
-                    <button 
-                      type="button" 
-                      className="p-1 rounded hover:bg-slate-100 dark:hover:bg-[#2e2e2a]"
-                      title="Attach files (Mock)"
-                    >
-                      <Paperclip className="w-4 h-4 text-slate-500" />
-                    </button>
-                    
-                    <button
-                      type="button"
-                      onClick={handleToggleThinkingMode}
-                      className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] font-semibold transition-all ${
-                        thinkingMode
-                          ? "bg-[var(--accent-color)] text-white border-[var(--accent-color)] shadow-sm"
-                          : "border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[#eae8e2] dark:hover:bg-[#2d2d2a]"
+                      className={`text-sm leading-relaxed ${
+                        msg.role === "user"
+                          ? "max-w-[85%] md:max-w-[75%] bg-zinc-900 text-zinc-100 border border-zinc-800 rounded-2xl p-4 shadow-sm"
+                          : "w-full max-w-none bg-transparent text-zinc-100 p-0 shadow-none border-none"
                       }`}
                     >
-                      <Sparkles className={`w-3 h-3 ${thinkingMode ? "animate-pulse" : ""}`} />
-                      <span>Deep Research {thinkingMode ? "ON" : "OFF"}</span>
-                    </button>
+                      {/* Search Query Pill */}
+                      {msg.search_query && (
+                        <div className="mb-3 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800/80 text-xs text-orange-400">
+                          <Globe className="w-3.5 h-3.5 shrink-0" />
+                          <span>Searched: {msg.search_query}</span>
+                        </div>
+                      )}
+
+                      {/* Render Message Body */}
+                      {renderMessageContent(msg.content)}
+
+                      {/* Animated Typing Cursor if streaming */}
+                      {(msg as any).isStreaming && (
+                        <span className="inline-block w-2 h-4 ml-1 bg-orange-500 animate-pulse rounded-sm align-middle" />
+                      )}
+                    </div>
                   </div>
-                  
+                ))
+              )}
+
+              {/* Agent Loader when thinking */}
+              {isLoading && (
+                <div className="flex flex-col items-start animate-message">
+                  <AgentLoader agentId={selectedAgentId} agentName={activeAgent.name} />
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+              </div>
+            </div>
+
+            {/* Chat Input Container */}
+            <div className="p-4 bg-[#09090b] border-t border-zinc-800/80">
+              <div className="max-w-4xl mx-auto flex flex-col gap-2">
+                <div className="relative flex items-end bg-zinc-950 border border-zinc-800/90 rounded-2xl p-2 focus-within:border-orange-500/60 focus-within:ring-1 focus-within:ring-orange-500/30 transition-all shadow-lg">
+                  <textarea
+                    ref={textareaRef}
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={`Ask ${activeAgent.name} anything... (Shift+Enter for new line)`}
+                    rows={1}
+                    className="w-full px-3 py-2 bg-transparent text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none max-h-44 font-sans"
+                  />
+
                   <button
-                    onClick={handleSend}
-                    disabled={isLoading || !inputText.trim()}
-                    className="p-2 rounded-xl text-white disabled:bg-slate-200 dark:disabled:bg-[#252522] disabled:text-slate-400 bg-[var(--accent-color)] hover:bg-[var(--accent-hover)] transition-colors cursor-pointer shadow-sm"
+                    onClick={handleSendMessage}
+                    disabled={!inputText.trim() || isLoading || isStreamingMsg}
+                    className="p-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white disabled:opacity-30 disabled:hover:bg-orange-600 transition-all shrink-0 cursor-pointer shadow-md shadow-orange-950/40"
                   >
-                    <Send className="w-3.5 h-3.5" />
+                    <Send className="w-4 h-4" />
                   </button>
                 </div>
+
+                <div className="flex items-center justify-between text-[11px] text-zinc-500 px-2">
+                  <span>Press Enter to send message</span>
+                  {limits && (
+                    <span>
+                      Daily: {limits.daily_remaining}/{limits.daily_limit}
+                    </span>
+                  )}
+                </div>
               </div>
-              <p className="text-[10px] text-center text-[var(--text-secondary)] mt-2 font-mono select-none">
-                Zydrakon AI can make mistakes. Consider checking important information.
-              </p>
             </div>
-          </footer>
+          </div>
         )}
+      </main>
 
-      </div>
-
-      {/* Agents Selection Panel */}
+      {/* Agents Selection Modal */}
       <AgentsPanel
         isOpen={showAgentsPanel}
         onClose={() => setShowAgentsPanel(false)}
         selectedAgentId={selectedAgentId}
         onSelectAgent={handleSelectAgent}
+      />
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={(user) => {
+          setIsAuthenticated(true);
+          setCurrentUser(user);
+        }}
       />
     </div>
   );

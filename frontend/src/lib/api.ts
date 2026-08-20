@@ -1,6 +1,6 @@
 import { Session, Message, ChatResponse, RateLimits } from "./types";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 
 interface RequestErrorDetails {
   message?: string;
@@ -33,8 +33,12 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
+
     try {
-      const response = await fetch(url, { ...options, headers });
+      const response = await fetch(url, { ...options, headers, signal: controller.signal });
+      clearTimeout(timeoutId);
       if (!response.ok) {
         let errorData: RequestErrorDetails;
         try {
@@ -52,9 +56,12 @@ class ApiClient {
       }
       return response.json() as Promise<T>;
     } catch (err: unknown) {
-      // Re-throw if it's already a formatted ApiError
+      clearTimeout(timeoutId);
       if (err instanceof ApiError) throw err;
-      const msg = err instanceof Error ? err.message : "Network error. Make sure the backend server is running.";
+      const isAbort = err instanceof Error && err.name === "AbortError";
+      const msg = isAbort
+        ? "Backend request timed out. Please verify server is responding."
+        : (err instanceof Error ? err.message : "Network error. Make sure the backend server is running.");
       throw new Error(msg);
     }
   }
@@ -72,6 +79,12 @@ class ApiClient {
 
   async deleteSession(sessionId: string): Promise<void> {
     await this.request(`/api/sessions/${sessionId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async deleteAllSessions(): Promise<void> {
+    await this.request("/api/sessions", {
       method: "DELETE",
     });
   }

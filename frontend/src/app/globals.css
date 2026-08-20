@@ -3,50 +3,51 @@
 @tailwind utilities;
 
 :root {
-  /* Claude Deep Charcoal Dark Mode Palette (Enforced Default) */
-  --bg-main: #1b1b18;
-  --bg-sidebar: #22221f;
-  --text-main: #e6e6e2;
-  --text-secondary: #999994;
-  --border-color: #32322e;
-  --bg-card: #22221f;
-  --bg-input: #292926;
-  --accent-color: #e26e4a;
-  --accent-hover: #cc5a37;
-  --bg-user-msg: #2a2a26;
-  --bg-code-header: #2d2d2a;
-  --bg-code-body: #141412;
+  /* Pitch Black True OLED Dark Palette (Enforced Default) */
+  --bg-main: #000000;
+  --bg-sidebar: #09090b;
+  --text-main: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --border-color: #27272a;
+  --bg-card: #0e0e11;
+  --bg-input: #141418;
+  --accent-color: #f97316;
+  --accent-hover: #ea580c;
+  --bg-user-msg: #18181c;
+  --bg-code-header: #121215;
+  --bg-code-body: #050507;
 }
 
 .dark {
-  /* Claude Deep Charcoal Dark Mode Palette */
-  --bg-main: #1b1b18;
-  --bg-sidebar: #22221f;
-  --text-main: #e6e6e2;
-  --text-secondary: #999994;
-  --border-color: #32322e;
-  --bg-card: #22221f;
-  --bg-input: #292926;
-  --accent-color: #e26e4a;
-  --accent-hover: #cc5a37;
-  --bg-user-msg: #2a2a26;
-  --bg-code-header: #2d2d2a;
-  --bg-code-body: #141412;
+  /* Pitch Black True OLED Dark Palette */
+  --bg-main: #000000;
+  --bg-sidebar: #09090b;
+  --text-main: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --border-color: #27272a;
+  --bg-card: #0e0e11;
+  --bg-input: #141418;
+  --accent-color: #f97316;
+  --accent-hover: #ea580c;
+  --bg-user-msg: #18181c;
+  --bg-code-header: #121215;
+  --bg-code-body: #050507;
 }
 
-body {
-  background-color: var(--bg-main);
+html, body {
+  background-color: #000000 !important;
   color: var(--text-main);
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
-  transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.25s ease, color 0.25s ease;
   overflow: hidden;
+  height: 100%;
 }
 
-/* Claude style messages content uses a high-readability warm serif font for AI output */
+/* High readability serif font for AI longform output */
 .claude-serif {
   font-family: Georgia, Cambria, "Times New Roman", Times, serif;
   font-size: 1.0625rem;
-  line-height: 1.625;
+  line-height: 1.65;
 }
 
 /* Custom code formatting scrollbars */
@@ -60,19 +61,58 @@ body {
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(120, 120, 110, 0.2);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 4px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: rgba(120, 120, 110, 0.4);
+  background: rgba(255, 255, 255, 0.25);
 }
 
-/* Bounce animations for message responses */
+/* Glassmorphism & Pitch Black Glow Utilities */
+.glass-panel {
+  background: rgba(9, 9, 11, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glow-border {
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  box-shadow: 0 0 15px rgba(249, 115, 22, 0.12);
+}
+
+.glow-button {
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.25);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glow-button:hover {
+  box-shadow: 0 0 25px rgba(249, 115, 22, 0.4);
+}
+
+/* Typing cursor animation */
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.typing-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 1.1em;
+  background-color: var(--accent-color);
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: cursorBlink 0.8s infinite;
+  box-shadow: 0 0 8px var(--accent-color);
+}
+
+/* Fade In Animations */
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -81,7 +121,7 @@ body {
 }
 
 .animate-message {
-  animation: fadeInUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation: fadeInUp 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
 @keyframes bounce {
@@ -89,7 +129,7 @@ body {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-5px);
+    transform: translateY(-4px);
   }
 }
 
@@ -149,77 +189,7 @@ body {
   animation: scaleIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
-/* ═══════════════════════════════════════════════════════
-   Agent-Specific Loading Animations
-   Each agent gets a unique, thematic animation
-   ═══════════════════════════════════════════════════════ */
-
-/* 1. Software Dev Tutor — Typing cursor blink with code brackets */
-@keyframes codeType {
-  0%, 100% { opacity: 1; transform: scaleX(1); }
-  50% { opacity: 0.3; transform: scaleX(0.6); }
-}
-
-/* 2. Science Tutor — Electron orbiting nucleus */
-@keyframes atomOrbit {
-  0% { transform: rotate(0deg) translateX(14px) rotate(0deg); }
-  100% { transform: rotate(360deg) translateX(14px) rotate(-360deg); }
-}
-
-/* 3. Biology Tutor — DNA double-helix twist */
-@keyframes dnaHelix {
-  0% { transform: rotateY(0deg) scaleX(1); }
-  25% { transform: rotateY(90deg) scaleX(0.3); }
-  50% { transform: rotateY(180deg) scaleX(1); }
-  75% { transform: rotateY(270deg) scaleX(0.3); }
-  100% { transform: rotateY(360deg) scaleX(1); }
-}
-
-/* 4. Microbiology Tutor — Petri dish scan line */
-@keyframes microScan {
-  0% { transform: translateY(-100%); opacity: 0; }
-  20% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { transform: translateY(100%); opacity: 0; }
-}
-
-/* 5. Project Manager — Sprint radar pulse */
-@keyframes sprintPulse {
-  0% { transform: scale(1); opacity: 0.8; }
-  50% { transform: scale(1.6); opacity: 0; }
-  100% { transform: scale(1); opacity: 0; }
-}
-
-/* 6. Product Owner — Roadmap slide-in blocks */
-@keyframes roadmapSlide {
-  0% { transform: translateX(-100%); opacity: 0; }
-  30% { opacity: 1; }
-  70% { opacity: 1; }
-  100% { transform: translateX(100%); opacity: 0; }
-}
-
-/* 7. Deep Research — Book page flip */
-@keyframes deepDive {
-  0% { transform: perspective(200px) rotateY(0deg); }
-  50% { transform: perspective(200px) rotateY(-15deg); }
-  100% { transform: perspective(200px) rotateY(0deg); }
-}
-
-/* 8. PPT Maker — Slide stack shuffle */
-@keyframes slideStack {
-  0%, 100% { transform: translateY(0) scale(1); opacity: 1; }
-  33% { transform: translateY(-4px) scale(1.05); opacity: 0.8; }
-  66% { transform: translateY(2px) scale(0.95); opacity: 0.6; }
-}
-
-/* 9. General Assistant / Zydrakon — Energy pulse ring */
-@keyframes zyPulse {
-  0% { box-shadow: 0 0 0 0 var(--agent-color, #e26e4a); }
-  40% { box-shadow: 0 0 0 10px transparent; }
-  100% { box-shadow: 0 0 0 0 transparent; }
-}
-
-/* Premium shimmer for skeleton loading lines */
+/* Shimmer Loader */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -227,18 +197,10 @@ body {
 
 .loader-shimmer {
   background: linear-gradient(90deg, 
-    var(--border-color) 25%, 
-    var(--bg-card) 37%, 
-    var(--border-color) 63%
+    #18181b 25%, 
+    #27272a 37%, 
+    #18181b 63%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
-}
-
-/* Orbital ring shared style */
-.orbit-ring {
-  animation: atomOrbit 1.8s linear infinite;
-}
-.orbit-ring-reverse {
-  animation: atomOrbit 2.4s linear infinite reverse;
 }
