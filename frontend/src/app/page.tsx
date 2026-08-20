@@ -520,7 +520,15 @@ function formatMarkdownInline(text: string): React.ReactNode {
   };
 
   if (showWelcomeScreen) {
-    return <WelcomeScreen onEnter={() => setShowWelcomeScreen(false)} />;
+    return (
+      <WelcomeScreen
+        onEnter={() => setShowWelcomeScreen(false)}
+        onLogin={() => {
+          setShowWelcomeScreen(false);
+          setShowFullLoginPage(true);
+        }}
+      />
+    );
   }
 
   if (showFullLoginPage) {
