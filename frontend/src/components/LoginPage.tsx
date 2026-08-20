@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ZydrakonLogo } from "./ZydrakonLogo";
-import { Mail, Lock, User, ArrowRight, Loader2, Sparkles, Shield, LogIn } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, Loader2, ShieldCheck, Cpu, LogIn, Sparkles, CheckCircle2 } from "lucide-react";
 import { api } from "@/lib/api";
 
 interface LoginPageProps {
@@ -10,32 +10,38 @@ interface LoginPageProps {
   onContinueGuest: () => void;
 }
 
+const BOOT_STEPS = [
+  "Initializing Zydrakon Neural Matrix...",
+  "Connecting to MongoDB Atlas Database...",
+  "Loading OpenRouter, Zhipu & Mistral API Routers...",
+  "Zydrakon AI Engine Ready 🚀",
+];
+
 export function LoginPage({ onSuccess, onContinueGuest }: LoginPageProps) {
-  const [isRegister, setIsRegister] = useState(false);
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [loadingText, setLoadingText] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [bootIndex, setBootIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBootIndex((prev) => (prev + 1) % BOOT_STEPS.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
     setIsLoading(true);
+    setLoadingText("Verifying Credentials & Bcrypt Hash...");
 
     try {
-      if (isRegister) {
-        setLoadingText("Creating Zydrakon Account...");
-        const res = await api.register({ name, email, password });
-        setLoadingText("Authenticating User Session...");
-        onSuccess(res.user, res.access_token);
-      } else {
-        setLoadingText("Verifying Credentials...");
-        const res = await api.login({ email, password });
-        setLoadingText("Loading User Workspace...");
-        onSuccess(res.user, res.access_token);
-      }
+      const res = await api.login({ email, password });
+      setLoadingText("Loading Zydrakon Workspace...");
+      onSuccess(res.user, res.access_token);
     } catch (err: any) {
       setErrorMsg(err?.message || "Authentication failed. Please check your credentials.");
     } finally {
@@ -51,140 +57,178 @@ export function LoginPage({ onSuccess, onContinueGuest }: LoginPageProps) {
       const mockUser = { id: "google-123", name: "Google User", email: "user@gmail.com" };
       onSuccess(mockUser, "mock-google-token-xyz");
       setIsLoading(false);
-    }, 1500);
+    }, 1200);
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#000000] text-white flex flex-col items-center justify-center p-6 overflow-y-auto select-none">
+    <div className="fixed inset-0 z-50 bg-[#000000] text-white flex flex-col lg:flex-row items-center justify-between p-6 lg:p-12 overflow-y-auto select-none">
       {/* Background Cyber Grid Lines */}
-      <div className="absolute inset-0 bg-[radial-gradient(#1f1f23_1px,transparent_1px)] [background-size:24px_24px] opacity-25 -z-10" />
+      <div className="absolute inset-0 bg-[radial-gradient(#1f1f23_1px,transparent_1px)] [background-size:28px_28px] opacity-30 -z-10" />
 
-      {/* Main Login Card */}
-      <div className="w-full max-w-md bg-[#09090b] border border-zinc-800/90 rounded-3xl p-8 shadow-2xl space-y-6 relative overflow-hidden">
-
-        {/* Brand Logo & Header */}
-        <div className="flex flex-col items-center text-center space-y-3">
-          <ZydrakonLogo size={80} />
+      {/* LEFT SIDE: Brand Showcase & Logo Artwork */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-between items-start h-full max-w-xl py-6 space-y-8 animate-fade-in">
+        {/* Brand Top Header */}
+        <div className="flex items-center gap-3">
+          <ZydrakonLogo size={44} className="drop-shadow-[0_0_12px_rgba(249,115,22,0.3)]" />
           <div>
-            <h2 className="text-2xl font-extrabold text-white tracking-tight">
-              Sign In to Zydrakon AI
-            </h2>
-            <p className="text-xs text-zinc-400 mt-1">
-              Log in with your user credentials (bcrypt protected)
+            <span className="font-extrabold text-xl tracking-wider text-white block">ZYDRAKON AI</span>
+            <span className="text-[10px] text-zinc-500 font-mono tracking-widest uppercase block -mt-0.5">Pitch Black Ultra Studio</span>
+          </div>
+        </div>
+
+        {/* Hero Section & Large Logo */}
+        <div className="flex flex-col items-start space-y-6 my-auto">
+          <div className="relative group cursor-pointer">
+            <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-orange-500/20 to-amber-500/10 blur-xl opacity-70 group-hover:opacity-100 transition-opacity" />
+            <ZydrakonLogo size={160} className="relative drop-shadow-[0_0_35px_rgba(249,115,22,0.35)]" />
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-4xl lg:text-5xl font-black tracking-tight text-white">
+              Zydrakon AI
+            </h1>
+            <p className="text-sm text-zinc-400 font-medium max-w-md leading-relaxed">
+              Next-Generation AI Intelligence & Streaming Studio with Multi-LLM Round-Robin Engine
             </p>
           </div>
+
+          {/* High-Tech Feature Badges */}
+          <div className="flex flex-wrap gap-2.5 pt-2">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-950 border border-zinc-800 text-xs text-zinc-300">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>Bcrypt Security Enforced</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-950 border border-zinc-800 text-xs text-zinc-300">
+              <Sparkles className="w-4 h-4 text-orange-400" />
+              <span>Multi-Model Rotation</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-950 border border-zinc-800 text-xs font-mono text-zinc-400">
+              <Cpu className="w-3.5 h-3.5 text-zinc-400 animate-pulse" />
+              <span>{BOOT_STEPS[bootIndex]}</span>
+            </div>
+          </div>
         </div>
 
-        {/* Notice Info */}
-        <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-400 text-center">
-          <span>🔒 Public sign-up is disabled. Accounts are managed by administrator.</span>
+        {/* Left Side Footer */}
+        <div className="text-xs text-zinc-500 font-mono space-y-1">
+          <p>© 2026 Zydrakon AI — All rights reserved</p>
+          <p>Created & Developed by <span className="text-zinc-300 font-semibold">Raj Patil</span></p>
         </div>
+      </div>
 
-        {/* Error Alert */}
-        {errorMsg && (
-          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
-            <span>⚠️ {errorMsg}</span>
+      {/* RIGHT SIDE: Login Card Scene (Image 2) */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center py-6">
+        <div className="w-full max-w-md bg-[#09090b] border border-zinc-800/90 rounded-3xl p-8 shadow-2xl space-y-6 relative overflow-hidden">
+          
+          {/* Card Header & Logo */}
+          <div className="flex flex-col items-center text-center space-y-3">
+            <ZydrakonLogo size={70} />
+            <div>
+              <h2 className="text-2xl font-extrabold text-white tracking-tight">
+                Sign In to Zydrakon AI
+              </h2>
+              <p className="text-xs text-zinc-400 mt-1">
+                Log in with your user credentials (bcrypt protected)
+              </p>
+            </div>
           </div>
-        )}
 
-        {/* Loading Overlay */}
-        {isLoading && (
-          <div className="absolute inset-0 bg-[#09090b]/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center space-y-3">
-            <Loader2 className="w-10 h-10 text-orange-400 animate-spin" />
-            <p className="text-xs font-mono text-zinc-300 animate-pulse">{loadingText}</p>
+          {/* Admin Notice */}
+          <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800/80 text-xs text-zinc-400 text-center flex items-center justify-center gap-2">
+            <Lock className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+            <span>Public sign-up is disabled. Accounts are managed by administrator.</span>
           </div>
-        )}
 
-        {/* Form Inputs */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {isRegister && (
+          {/* Error Alert */}
+          {errorMsg && (
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+              <span>⚠️ {errorMsg}</span>
+            </div>
+          )}
+
+          {/* Loading Overlay */}
+          {isLoading && (
+            <div className="absolute inset-0 bg-[#09090b]/95 backdrop-blur-sm z-20 flex flex-col items-center justify-center space-y-3">
+              <Loader2 className="w-10 h-10 text-orange-400 animate-spin" />
+              <p className="text-xs font-mono text-zinc-300 animate-pulse">{loadingText}</p>
+            </div>
+          )}
+
+          {/* Form Inputs */}
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-300">Full Name</label>
+              <label className="text-xs font-medium text-zinc-300">Email Address</label>
               <div className="relative flex items-center">
-                <User className="w-4 h-4 text-zinc-500 absolute left-3.5" />
+                <Mail className="w-4 h-4 text-zinc-500 absolute left-3.5" />
                 <input
-                  type="text"
+                  type="email"
                   required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Raj Patil"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-orange-500 transition-colors"
                 />
               </div>
             </div>
-          )}
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-zinc-300">Email Address</label>
-            <div className="relative flex items-center">
-              <Mail className="w-4 h-4 text-zinc-500 absolute left-3.5" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-orange-500 transition-colors"
-              />
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-300">Password</label>
+              <div className="relative flex items-center">
+                <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5" />
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-orange-500 transition-colors"
+                />
+              </div>
             </div>
+
+            <button
+              type="submit"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-semibold text-xs tracking-wide transition-all shadow-lg shadow-orange-950/40 flex items-center justify-center gap-2 cursor-pointer border border-orange-400/30 hover:scale-[1.01]"
+            >
+              <span>Sign In</span>
+              <LogIn className="w-4 h-4" />
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="relative flex items-center justify-center my-4">
+            <div className="border-t border-zinc-800 w-full" />
+            <span className="bg-[#09090b] px-3 text-[10px] text-zinc-500 uppercase font-mono absolute">OR</span>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-zinc-300">Password</label>
-            <div className="relative flex items-center">
-              <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5" />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-orange-500 transition-colors"
-              />
-            </div>
+          {/* Social Auth & Guest Mode */}
+          <div className="space-y-2.5">
+            <button
+              type="button"
+              onClick={handleGoogleAuth}
+              className="w-full py-2.5 px-4 rounded-xl bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 font-medium transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24">
+                <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z" />
+                <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z" />
+                <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 10.8 0 12s.7 2.3 1.9 4.7l3.7-2.9z" />
+                <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z" />
+              </svg>
+              <span>Continue with Google</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onContinueGuest}
+              className="w-full py-2.5 px-4 rounded-xl bg-zinc-900/60 hover:bg-zinc-900 border border-zinc-800/80 text-xs text-zinc-400 hover:text-zinc-200 font-medium transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <span>Continue as Guest</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
-
-          <button
-            type="submit"
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-semibold text-xs tracking-wide transition-all shadow-lg shadow-orange-950/40 flex items-center justify-center gap-2 cursor-pointer border border-orange-400/30"
-          >
-            <span>{isRegister ? "Create Account" : "Sign In"}</span>
-            <LogIn className="w-4 h-4" />
-          </button>
-        </form>
-
-        {/* Divider */}
-        <div className="relative flex items-center justify-center my-4">
-          <div className="border-t border-zinc-800 w-full" />
-          <span className="bg-[#09090b] px-3 text-[10px] text-zinc-500 uppercase font-mono absolute">OR</span>
-        </div>
-
-        {/* Social Auth & Guest Mode */}
-        <div className="space-y-2.5">
-          <button
-            type="button"
-            onClick={handleGoogleAuth}
-            className="w-full py-2.5 px-4 rounded-xl bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 font-medium transition-all flex items-center justify-center gap-2.5 cursor-pointer"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24">
-              <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z" />
-              <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z" />
-              <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 10.8 0 12s.7 2.3 1.9 4.7l3.7-2.9z" />
-              <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z" />
-            </svg>
-            <span>Continue with Google</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onContinueGuest}
-            className="w-full py-2.5 px-4 rounded-xl bg-zinc-900/60 hover:bg-zinc-900 border border-zinc-800/80 text-xs text-zinc-400 hover:text-zinc-200 font-medium transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <span>Continue as Guest</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
         </div>
       </div>
     </div>
   );
 }
+
