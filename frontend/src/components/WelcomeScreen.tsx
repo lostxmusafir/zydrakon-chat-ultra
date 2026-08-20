@@ -73,8 +73,8 @@ export function WelcomeScreen({ onEnter, onLogin }: WelcomeScreenProps) {
         {/* Top Header */}
         <div className="flex items-center justify-between w-full max-w-md mx-auto">
           <div className="flex items-center gap-3">
-            <ZydrakonLogo size={40} />
-            <span className="font-extrabold text-lg tracking-wide text-zinc-900">Zydrakon AI</span>
+            <ZydrakonLogo size={60} />
+            <span className="font-extrabold text-xl tracking-wide text-zinc-900">Zydrakon AI</span>
           </div>
           <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
             ● v2.5 Engine Active
@@ -83,7 +83,7 @@ export function WelcomeScreen({ onEnter, onLogin }: WelcomeScreenProps) {
 
         {/* Center Action */}
         <div className="my-auto space-y-6 py-6 w-full max-w-md mx-auto text-center">
-          <ZydrakonLogo size={70} className="mx-auto" />
+          <ZydrakonLogo size={100} className="mx-auto" />
 
           <div>
             <h2 className="text-3xl md:text-4xl font-extrabold text-zinc-900 tracking-tight">

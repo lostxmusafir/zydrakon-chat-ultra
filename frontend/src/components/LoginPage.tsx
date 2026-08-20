@@ -92,8 +92,8 @@ export function LoginPage({ onSuccess, onContinueGuest }: LoginPageProps) {
         {/* Top Header */}
         <div className="flex items-center justify-between w-full max-w-md mx-auto">
           <div className="flex items-center gap-3">
-            <ZydrakonLogo size={40} />
-            <span className="font-extrabold text-lg tracking-wide text-zinc-900">Zydrakon AI</span>
+            <ZydrakonLogo size={60} />
+            <span className="font-extrabold text-xl tracking-wide text-zinc-900">Zydrakon AI</span>
           </div>
           <button
             onClick={onContinueGuest}
@@ -114,7 +114,8 @@ export function LoginPage({ onSuccess, onContinueGuest }: LoginPageProps) {
 
         {/* Sign In Form */}
         <div className="my-auto space-y-6 py-6 w-full max-w-md mx-auto">
-          <div>
+          <div className="text-center">
+            <ZydrakonLogo size={100} className="mx-auto mb-4" />
             <h2 className="text-3xl md:text-4xl font-extrabold text-zinc-900 tracking-tight">
               Sign In
             </h2>
