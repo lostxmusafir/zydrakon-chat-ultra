@@ -99,8 +99,8 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   // Welcome & Full Login States
-  const [showWelcomeScreen, setShowWelcomeScreen] = useState(true);
-  const [showFullLoginPage, setShowFullLoginPage] = useState(false);
+  const [showWelcomeScreen, setShowWelcomeScreen] = useState(false);
+  const [showFullLoginPage, setShowFullLoginPage] = useState(true);
 
   // Agents states
   const [selectedAgentId, setSelectedAgentId] = useState<string>("general-assistant");
