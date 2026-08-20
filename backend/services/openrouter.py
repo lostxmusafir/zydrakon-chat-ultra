@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 # List of robust free models to choose from/fallback to
 FREE_MODELS = [
+    "z-ai/glm-5.2:free",
     "deepseek/deepseek-v4-flash",
     "poolside/laguna-m.1:free",
     "nvidia/nemotron-3-ultra-550b-a55b:free"
@@ -27,7 +28,12 @@ class OpenRouterClient:
         self.zhipu_model_index = 0
         self.zhipu_models = ["glm-4.5-flash", "glm-4.7-flash"]
         self.openrouter_model_index = 0
-        self.openrouter_models = ["deepseek/deepseek-v4-flash", "poolside/laguna-m.1:free", "nvidia/nemotron-3-ultra-550b-a55b:free"]
+        self.openrouter_models = [
+            "z-ai/glm-5.2:free",
+            "deepseek/deepseek-v4-flash",
+            "poolside/laguna-m.1:free",
+            "nvidia/nemotron-3-ultra-550b-a55b:free"
+        ]
 
     def _get_next_mistral_model(self) -> str:
         """Gets the next Mistral AI model in a round-robin rotation."""
