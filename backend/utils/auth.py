@@ -20,21 +20,41 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 def create_access_token(data: dict) -> str:
-    """Create a JWT with a 5-hour expiry."""
+    """Create a JWT Access Token with a 12-hour expiry."""
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(hours=5)
-    to_encode.update({"exp": expire})
-    
+    expire = datetime.utcnow() + timedelta(hours=settings.ACCESS_TOKEN_EXPIRE_HOURS)
+    to_encode.update({"exp": expire, "type": "access"})
+    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm="HS256")
+    return encoded_jwt
+
+def create_refresh_token(data: dict) -> str:
+    """Create a JWT Refresh Token with a 7-day expiry."""
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire, "type": "refresh"})
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm="HS256")
     return encoded_jwt
 
 def verify_access_token(token: str) -> Optional[dict]:
-    """Verify and decode a JWT."""
+    """Verify and decode an Access JWT."""
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
+        if payload.get("type") and payload.get("type") != "access":
+            return None
         return payload
     except Exception as e:
-        logger.warning(f"Token verification fallback: {str(e)}")
+        logger.warning(f"Access token verification fallback: {str(e)}")
+        return None
+
+def verify_refresh_token(token: str) -> Optional[dict]:
+    """Verify and decode a Refresh JWT."""
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
+        if payload.get("type") != "refresh":
+            return None
+        return payload
+    except Exception as e:
+        logger.warning(f"Refresh token verification failed: {str(e)}")
         return None
 
 from fastapi import Request

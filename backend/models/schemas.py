@@ -30,6 +30,14 @@ class ChangePasswordRequest(BaseModel):
     old_password: str = Field(..., min_length=1, description="Current password")
     new_password: str = Field(..., min_length=6, description="New password (minimum 6 characters)")
 
+class RefreshRequest(BaseModel):
+    refresh_token: str = Field(..., description="Valid 7-day refresh token")
+
+class RefreshResponse(BaseModel):
+    access_token: str = Field(..., description="New 12-hour access token")
+    refresh_token: str = Field(..., description="Renewed 7-day refresh token")
+    token_type: str = "bearer"
+
 class SearchResult(BaseModel):
     title: str
     url: str

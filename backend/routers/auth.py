@@ -5,16 +5,17 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 
 from backend.utils.config import settings
-from backend.utils.auth import create_access_token, get_password_hash, verify_password, get_current_user
+from backend.utils.auth import create_access_token, create_refresh_token, verify_access_token, verify_refresh_token, get_password_hash, verify_password, get_current_user
 from backend.models.database import get_db
-from backend.models.schemas import User, UserLogin, ChangePasswordRequest
+from backend.models.schemas import User, UserLogin, ChangePasswordRequest, RefreshRequest, RefreshResponse
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 logger = logging.getLogger(__name__)
 
 class AuthResponse(BaseModel):
     access_token: str
-    token_type: str
+    refresh_token: str
+    token_type: str = "bearer"
     user: User
 
 class StatusResponse(BaseModel):
@@ -90,11 +91,13 @@ async def login(user_in: UserLogin):
             headers={"WWW-Authenticate": "Bearer"},
         )
         
-    # 3. Generate JWT access token
+    # 3. Generate 12-hour JWT access token & 7-day refresh token
     access_token = create_access_token(data={"sub": user["id"]})
+    refresh_token = create_refresh_token(data={"sub": user["id"]})
     
     return AuthResponse(
         access_token=access_token,
+        refresh_token=refresh_token,
         token_type="bearer",
         user=User(
             id=user["id"],
@@ -103,6 +106,35 @@ async def login(user_in: UserLogin):
             tier=user.get("tier", "free"),
             allowed_models=user.get("allowed_models")
         )
+    )
+
+@router.post("/refresh", response_model=RefreshResponse)
+async def refresh_tokens(req: RefreshRequest):
+    """Refreshes a 12-hour access token using a valid 7-day refresh token."""
+    payload = verify_refresh_token(req.refresh_token)
+    if not payload or not payload.get("sub"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token. Please sign in again.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user_id = payload["sub"]
+    db = get_db()
+    user = db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account not found. Please sign in again.",
+        )
+
+    new_access_token = create_access_token(data={"sub": user_id})
+    new_refresh_token = create_refresh_token(data={"sub": user_id})
+
+    return RefreshResponse(
+        access_token=new_access_token,
+        refresh_token=new_refresh_token,
+        token_type="bearer"
     )
 
 @router.post("/change-password", response_model=StatusResponse)

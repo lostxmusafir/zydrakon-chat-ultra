@@ -22,10 +22,35 @@ export class ApiError extends Error {
 }
 
 class ApiClient {
-  private async request<T>(path: string, options?: RequestInit): Promise<T> {
+  async refreshToken(): Promise<{ access_token: string; refresh_token: string }> {
+    const refreshToken = typeof window !== 'undefined' ? localStorage.getItem("zydrakon_refresh_token") : null;
+    if (!refreshToken) {
+      throw new Error("No refresh token available");
+    }
+    const res = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!res.ok) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem("zydrakon_token");
+        localStorage.removeItem("zydrakon_refresh_token");
+      }
+      throw new Error("Refresh token expired or invalid");
+    }
+    const data = await res.json();
+    if (typeof window !== 'undefined') {
+      localStorage.setItem("zydrakon_token", data.access_token);
+      localStorage.setItem("zydrakon_refresh_token", data.refresh_token);
+    }
+    return data;
+  }
+
+  private async request<T>(path: string, options?: RequestInit, isRetry = false): Promise<T> {
     const url = `${BACKEND_URL}${path}`;
     
-    const token = typeof window !== 'undefined' ? localStorage.getItem("zydrakon_token") : null;
+    let token = typeof window !== 'undefined' ? localStorage.getItem("zydrakon_token") : null;
     const headers: Record<string, string> = {
       ...(options?.headers as Record<string, string> || {})
     };
@@ -39,6 +64,24 @@ class ApiClient {
     try {
       const response = await fetch(url, { ...options, headers, signal: controller.signal });
       clearTimeout(timeoutId);
+
+      // Automatic Token Refresh Retry Interceptor on 401 Unauthorized
+      if (response.status === 401 && !isRetry && !path.startsWith("/api/auth/login") && !path.startsWith("/api/auth/refresh")) {
+        try {
+          const refreshed = await this.refreshToken();
+          if (refreshed && refreshed.access_token) {
+            return this.request<T>(path, options, true);
+          }
+        } catch {
+          // Refresh failed; clear tokens
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem("zydrakon_token");
+            localStorage.removeItem("zydrakon_refresh_token");
+            localStorage.removeItem("zydrakon_user");
+          }
+        }
+      }
+
       if (!response.ok) {
         let errorData: RequestErrorDetails;
         try {
@@ -66,12 +109,23 @@ class ApiClient {
     }
   }
 
-  async login(credentials: { email: string; password: string }): Promise<{ access_token: string; token_type: string; user: any }> {
-    return this.request<{ access_token: string; token_type: string; user: any }>("/api/auth/login", {
+  async login(credentials: { email: string; password: string }): Promise<{ access_token: string; refresh_token: string; token_type: string; user: any }> {
+    const res = await this.request<{ access_token: string; refresh_token: string; token_type: string; user: any }>("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(credentials),
     });
+
+    if (typeof window !== 'undefined' && res.access_token) {
+      localStorage.setItem("zydrakon_token", res.access_token);
+      if (res.refresh_token) {
+        localStorage.setItem("zydrakon_refresh_token", res.refresh_token);
+      }
+      if (res.user) {
+        localStorage.setItem("zydrakon_user", JSON.stringify(res.user));
+      }
+    }
+    return res;
   }
 
   async createSession(): Promise<Session> {
