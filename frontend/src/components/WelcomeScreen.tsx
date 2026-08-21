@@ -55,7 +55,7 @@ export function WelcomeScreen({ onEnter, onLogin }: WelcomeScreenProps) {
               </span>
             </h1>
             <p className="text-sm text-zinc-400 font-medium leading-relaxed">
-              Next-Generation Multi-LLM Round-Robin Engine with instant streaming and Bcrypt security.
+              Experience Zydrakon AI, a next-generation custom-built AI model with instant token streaming, intelligent query caching, and secure authentication.
             </p>
           </div>
         </div>

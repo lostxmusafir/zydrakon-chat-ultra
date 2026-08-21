@@ -10,7 +10,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.models.database import init_db
-from backend.routers import chat, sessions, auth
+from backend.routers import chat, sessions, auth, admin
 from backend.utils.config import settings
 
 # Configure logging
@@ -39,6 +39,8 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(sessions.router)
+app.include_router(admin.router)
+
 
 @app.on_event("startup")
 def startup_event():

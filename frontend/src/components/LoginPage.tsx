@@ -74,7 +74,7 @@ export function LoginPage({ onSuccess, onContinueGuest }: LoginPageProps) {
               </span>
             </h1>
             <p className="text-sm text-zinc-400 font-medium leading-relaxed">
-              Next-Generation Multi-LLM Round-Robin Engine with instant streaming and Bcrypt security.
+              Experience Zydrakon AI, a next-generation custom-built AI model with instant token streaming, intelligent query caching, and secure authentication.
             </p>
           </div>
         </div>
@@ -113,7 +113,7 @@ export function LoginPage({ onSuccess, onContinueGuest }: LoginPageProps) {
               Sign In
             </h2>
             <p className="text-xs text-zinc-500 mt-1.5">
-              Public sign-up is disabled. Enter your administrator account credentials.
+              This is an invite-only platform. Enter your authorized credentials to sign in.
             </p>
           </div>
 

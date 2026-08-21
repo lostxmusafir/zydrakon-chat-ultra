@@ -82,3 +82,14 @@ async def get_current_user(request: Request) -> dict:
         "name": "Guest User",
         "role": "user"
     }
+
+async def get_current_admin(current_user: dict = Depends(get_current_user)) -> dict:
+    """Dependency to enforce that the logged-in user is an administrator."""
+    # Allow if role is admin or email is admin@zydrakon.ai
+    if current_user.get("role") != "admin" and current_user.get("email") != "admin@zydrakon.ai":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privilege required to access this resource"
+        )
+    return current_user
+

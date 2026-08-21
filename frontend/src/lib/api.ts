@@ -184,6 +184,22 @@ class ApiClient {
       }),
     });
   }
+
+  async getAdminUsers(): Promise<any[]> {
+    return this.request<any[]>("/api/admin/users");
+  }
+
+  async createAdminUser(user: { email: string; name: string; password: string; role?: string; tier?: string }): Promise<any> {
+    return this.request<any>("/api/admin/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(user),
+    });
+  }
+
+  async getAdminLogs(): Promise<any[]> {
+    return this.request<any[]>("/api/admin/logs");
+  }
 }
 
 export const api = new ApiClient();
