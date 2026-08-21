@@ -492,6 +492,7 @@ export default function AdminDashboard() {
                     >
                       <option value="free">Free</option>
                       <option value="gold">Gold</option>
+                      <option value="premium">Premium</option>
                     </select>
                   </div>
                 </div>
@@ -544,7 +545,9 @@ export default function AdminDashboard() {
                           </td>
                           <td className="py-4 px-6">
                             <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                              user.tier === "gold" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                              user.tier === "premium" ? "bg-purple-500/10 text-purple-400 border border-purple-500/20" :
+                              user.tier === "gold" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" :
+                              "bg-blue-500/10 text-blue-400 border border-blue-500/20"
                             }`}>
                               {user.tier}
                             </span>

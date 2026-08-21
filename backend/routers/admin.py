@@ -78,7 +78,11 @@ async def create_user(user_in: AdminUserCreate, admin: dict = Depends(get_curren
         "hashed_password": hashed_password,
         "role": user_in.role,
         "tier": user_in.tier,
-        "allowed_models": ["zydrakon-free", "zhipu-free"] if user_in.tier == "gold" else ["zydrakon-free"],
+        "allowed_models": (
+            ["zydrakon-free", "zhipu-free", "zydrakon-premium"] if user_in.tier == "premium"
+            else ["zydrakon-free", "zhipu-free"] if user_in.tier == "gold"
+            else ["zydrakon-free"]
+        ),
         "created_at": created_time
     }
     
