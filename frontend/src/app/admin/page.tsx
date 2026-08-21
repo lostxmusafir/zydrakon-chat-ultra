@@ -401,10 +401,86 @@ export default function AdminDashboard() {
 
         {/* Tab Content */}
         {activeTab === "users" ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="flex flex-col gap-6">
             
-            {/* Create User Form */}
-            <div className="bg-zinc-900/30 border border-zinc-800/80 p-6 rounded-3xl backdrop-blur-sm space-y-6 h-fit">
+            {/* Users Table - Full Width, First */}
+            <div className="bg-zinc-900/30 border border-zinc-800/80 rounded-3xl backdrop-blur-sm overflow-hidden">
+              <div className="p-6 border-b border-zinc-800/60 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-white">Registered Users</h2>
+                  <p className="text-zinc-500 text-xs mt-1">Manage all {usersList.length} accounts. Change tier from dropdown below.</p>
+                </div>
+                {loading && <Loader2 className="w-4 h-4 text-orange-500 animate-spin" />}
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs md:text-sm">
+                  <thead>
+                    <tr className="border-b border-zinc-800/60 text-zinc-500 font-mono uppercase tracking-wider text-[11px] bg-zinc-900/10">
+                      <th className="py-4 px-6">Name</th>
+                      <th className="py-4 px-6">Email</th>
+                      <th className="py-4 px-6">Role</th>
+                      <th className="py-4 px-6">Tier</th>
+                      <th className="py-4 px-6">Joined</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/40 text-zinc-300">
+                    {usersList.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-zinc-500 font-mono">No users found.</td>
+                      </tr>
+                    ) : (
+                      usersList.map((user) => (
+                        <tr key={user.id} className="hover:bg-zinc-800/10 transition-colors">
+                          <td className="py-4 px-6 font-semibold text-white">{user.name}</td>
+                          <td className="py-4 px-6 font-mono text-zinc-400">{user.email}</td>
+                          <td className="py-4 px-6">
+                            <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              user.role === "admin" ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-zinc-800 text-zinc-400 border border-zinc-700/40"
+                            }`}>
+                              {user.role}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6">
+                            <select
+                              value={user.tier}
+                              disabled={actionLoading}
+                              onChange={async (e) => {
+                                const newTier = e.target.value;
+                                try {
+                                  setActionLoading(true);
+                                  await api.updateUserTier(user.id, newTier);
+                                  const updatedUsers = await api.getAdminUsers();
+                                  setUsersList(updatedUsers);
+                                } catch (err: any) {
+                                  alert(err?.message || "Failed to update tier");
+                                } finally {
+                                  setActionLoading(false);
+                                }
+                              }}
+                              className={`px-2 py-0.5 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-[#09090b] border focus:outline-none cursor-pointer ${
+                                user.tier === "premium" ? "text-purple-400 border-purple-500/20 bg-purple-500/10 focus:border-purple-500" :
+                                user.tier === "gold" ? "text-amber-400 border-amber-500/20 bg-amber-500/10 focus:border-amber-500" :
+                                "text-blue-400 border-blue-500/20 bg-blue-500/10 focus:border-blue-500"
+                              }`}
+                            >
+                              <option value="free" className="bg-zinc-950 text-blue-400">Free</option>
+                              <option value="gold" className="bg-zinc-950 text-amber-400">Gold</option>
+                              <option value="premium" className="bg-zinc-950 text-purple-400">Premium</option>
+                            </select>
+                          </td>
+                          <td className="py-4 px-6 text-zinc-500 font-mono">
+                            {user.created_at ? new Date(user.created_at).toLocaleDateString() : "N/A"}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Create User Form - Collapsible Section Below */}
+            <div className="bg-zinc-900/30 border border-zinc-800/80 p-6 rounded-3xl backdrop-blur-sm space-y-6">
               <div>
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
                   <UserPlus className="text-orange-500 w-5 h-5" /> Create New User
@@ -508,80 +584,8 @@ export default function AdminDashboard() {
               </form>
             </div>
 
-            {/* Users Table */}
-            <div className="lg:col-span-2 bg-zinc-900/30 border border-zinc-800/80 rounded-3xl backdrop-blur-sm overflow-hidden flex flex-col h-fit">
-              <div className="p-6 border-b border-zinc-800/60">
-                <h2 className="text-xl font-bold text-white">Registered Users</h2>
-                <p className="text-zinc-500 text-xs mt-1">Manage all accounts currently present on the system.</p>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs md:text-sm">
-                  <thead>
-                    <tr className="border-b border-zinc-800/60 text-zinc-500 font-mono uppercase tracking-wider text-[11px] bg-zinc-900/10">
-                      <th className="py-4 px-6">Name</th>
-                      <th className="py-4 px-6">Email</th>
-                      <th className="py-4 px-6">Role</th>
-                      <th className="py-4 px-6">Tier</th>
-                      <th className="py-4 px-6">Joined</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-800/40 text-zinc-300">
-                    {usersList.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="py-8 text-center text-zinc-500 font-mono">No users found.</td>
-                      </tr>
-                    ) : (
-                      usersList.map((user) => (
-                        <tr key={user.id} className="hover:bg-zinc-800/10 transition-colors">
-                          <td className="py-4 px-6 font-semibold text-white">{user.name}</td>
-                          <td className="py-4 px-6 font-mono text-zinc-400">{user.email}</td>
-                          <td className="py-4 px-6">
-                            <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                              user.role === "admin" ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-zinc-800 text-zinc-400 border border-zinc-700/40"
-                            }`}>
-                              {user.role}
-                            </span>
-                          </td>
-                          <td className="py-4 px-6">
-                            <select
-                              value={user.tier}
-                              disabled={actionLoading}
-                              onChange={async (e) => {
-                                const newTier = e.target.value;
-                                try {
-                                  setActionLoading(true);
-                                  await api.updateUserTier(user.id, newTier);
-                                  const updatedUsers = await api.getAdminUsers();
-                                  setUsersList(updatedUsers);
-                                } catch (err: any) {
-                                  alert(err?.message || "Failed to update tier");
-                                } finally {
-                                  setActionLoading(false);
-                                }
-                              }}
-                              className={`px-2 py-0.5 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-[#09090b] border focus:outline-none cursor-pointer ${
-                                user.tier === "premium" ? "text-purple-400 border-purple-500/20 bg-purple-500/10 focus:border-purple-500" :
-                                user.tier === "gold" ? "text-amber-400 border-amber-500/20 bg-amber-500/10 focus:border-amber-500" :
-                                "text-blue-400 border-blue-500/20 bg-blue-500/10 focus:border-blue-500"
-                              }`}
-                            >
-                              <option value="free" className="bg-zinc-950 text-blue-400">Free</option>
-                              <option value="gold" className="bg-zinc-950 text-amber-400">Gold</option>
-                              <option value="premium" className="bg-zinc-950 text-purple-400">Premium</option>
-                            </select>
-                          </td>
-                          <td className="py-4 px-6 text-zinc-500 font-mono">
-                            {user.created_at ? new Date(user.created_at).toLocaleDateString() : "N/A"}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
           </div>
+
         ) : (
           /* Logs Panel */
           <div className="bg-zinc-900/30 border border-zinc-800/80 rounded-3xl backdrop-blur-sm overflow-hidden flex flex-col">
