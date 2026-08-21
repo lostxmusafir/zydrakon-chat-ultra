@@ -544,13 +544,32 @@ export default function AdminDashboard() {
                             </span>
                           </td>
                           <td className="py-4 px-6">
-                            <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                              user.tier === "premium" ? "bg-purple-500/10 text-purple-400 border border-purple-500/20" :
-                              user.tier === "gold" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" :
-                              "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                            }`}>
-                              {user.tier}
-                            </span>
+                            <select
+                              value={user.tier}
+                              disabled={actionLoading}
+                              onChange={async (e) => {
+                                const newTier = e.target.value;
+                                try {
+                                  setActionLoading(true);
+                                  await api.updateUserTier(user.id, newTier);
+                                  const updatedUsers = await api.getAdminUsers();
+                                  setUsersList(updatedUsers);
+                                } catch (err: any) {
+                                  alert(err?.message || "Failed to update tier");
+                                } finally {
+                                  setActionLoading(false);
+                                }
+                              }}
+                              className={`px-2 py-0.5 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-[#09090b] border focus:outline-none cursor-pointer ${
+                                user.tier === "premium" ? "text-purple-400 border-purple-500/20 bg-purple-500/10 focus:border-purple-500" :
+                                user.tier === "gold" ? "text-amber-400 border-amber-500/20 bg-amber-500/10 focus:border-amber-500" :
+                                "text-blue-400 border-blue-500/20 bg-blue-500/10 focus:border-blue-500"
+                              }`}
+                            >
+                              <option value="free" className="bg-zinc-950 text-blue-400">Free</option>
+                              <option value="gold" className="bg-zinc-950 text-amber-400">Gold</option>
+                              <option value="premium" className="bg-zinc-950 text-purple-400">Premium</option>
+                            </select>
                           </td>
                           <td className="py-4 px-6 text-zinc-500 font-mono">
                             {user.created_at ? new Date(user.created_at).toLocaleDateString() : "N/A"}

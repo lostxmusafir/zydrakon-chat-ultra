@@ -148,3 +148,46 @@ async def list_logs(admin: dict = Depends(get_current_admin)):
         ))
         
     return logs
+
+class UserTierUpdate(BaseModel):
+    tier: str
+
+@router.put("/users/{user_id}/tier", response_model=AdminUserResponse)
+async def update_user_tier(user_id: str, tier_in: UserTierUpdate, admin: dict = Depends(get_current_admin)):
+    """Update a user's tier and their allowed models list."""
+    db = get_db()
+    user = db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    tier = tier_in.tier.strip().lower()
+    if tier not in ["free", "gold", "premium"]:
+        raise HTTPException(status_code=400, detail="Invalid tier. Supported: free, gold, premium")
+    
+    allowed_models = (
+        ["zydrakon-free", "zhipu-free", "zydrakon-premium"] if tier == "premium"
+        else ["zydrakon-free", "zhipu-free"] if tier == "gold"
+        else ["zydrakon-free"]
+    )
+    
+    db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "tier": tier,
+            "allowed_models": allowed_models
+        }}
+    )
+    
+    updated_user = db.users.find_one({"id": user_id})
+    dt = updated_user.get("created_at")
+    dt_str = dt.isoformat() + "Z" if isinstance(dt, datetime) else str(dt) if dt else None
+    
+    return AdminUserResponse(
+        id=updated_user["id"],
+        email=updated_user["email"],
+        name=updated_user.get("name"),
+        role=updated_user.get("role", "user"),
+        tier=updated_user["tier"],
+        created_at=dt_str
+    )
+

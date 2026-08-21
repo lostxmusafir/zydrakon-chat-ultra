@@ -236,6 +236,14 @@ class ApiClient {
       }),
     });
   }
+
+  async updateUserTier(userId: string, tier: string): Promise<any> {
+    return this.request<any>(`/api/admin/users/${userId}/tier`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tier }),
+    });
+  }
 }
 
 export const api = new ApiClient();
