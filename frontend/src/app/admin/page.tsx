@@ -15,7 +15,8 @@ import {
   Mail,
   Lock,
   User,
-  Trash2
+  Trash2,
+  LogOut
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import Link from "next/link";
@@ -328,14 +329,34 @@ export default function AdminDashboard() {
             </p>
           </div>
 
-          <button
-            onClick={loadData}
-            disabled={loading}
-            className="px-4 py-2 text-xs md:text-sm font-semibold rounded-xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 transition-all flex items-center gap-2 cursor-pointer text-zinc-300"
-          >
-            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Activity className="w-3.5 h-3.5" />}
-            Sync Dashboard
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={loadData}
+              disabled={loading}
+              className="px-4 py-2 text-xs md:text-sm font-semibold rounded-xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 transition-all flex items-center gap-2 cursor-pointer text-zinc-300"
+            >
+              {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Activity className="w-3.5 h-3.5" />}
+              Sync Dashboard
+            </button>
+
+            <button
+              onClick={async () => {
+                try {
+                  await api.adminLogout();
+                } catch (_) {}
+                localStorage.removeItem("zydrakon_token");
+                localStorage.removeItem("zydrakon_refresh_token");
+                localStorage.removeItem("zydrakon_user");
+                setAdminUser(null);
+                setIsAdmin(false);
+                setShowLoginForm(true);
+              }}
+              className="px-4 py-2 text-xs md:text-sm font-semibold rounded-xl bg-red-950/30 border border-red-500/30 hover:bg-red-950/60 transition-all flex items-center gap-2 cursor-pointer text-red-400 hover:text-red-300"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Sign Out
+            </button>
+          </div>
         </div>
 
         {/* Info Cards */}

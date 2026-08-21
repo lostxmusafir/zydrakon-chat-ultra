@@ -250,6 +250,12 @@ class ApiClient {
       method: "DELETE",
     });
   }
+
+  async adminLogout(): Promise<any> {
+    return this.request<any>("/api/admin/logout", {
+      method: "POST",
+    });
+  }
 }
 
 export const api = new ApiClient();

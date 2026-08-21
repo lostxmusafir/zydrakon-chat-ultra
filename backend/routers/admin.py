@@ -217,3 +217,10 @@ async def delete_user(user_id: str, admin: dict = Depends(get_current_admin)):
     else:
         db.users.delete_one({"_id": user["_id"]})
 
+
+@router.post("/logout")
+async def admin_logout(admin: dict = Depends(get_current_admin)):
+    """Admin sign-out endpoint. JWT is stateless — client must clear the token.
+    This endpoint confirms the session was valid at logout time."""
+    logger.info(f"Admin signed out: {admin.get('email', 'unknown')}")
+    return {"message": "Signed out successfully", "email": admin.get("email")}
