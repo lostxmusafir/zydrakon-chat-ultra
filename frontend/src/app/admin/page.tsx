@@ -48,6 +48,13 @@ export default function AdminDashboard() {
   // Authentication check
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminUser, setAdminUser] = useState<any>(null);
+  const [showLoginForm, setShowLoginForm] = useState(false);
+
+  // Admin Login States
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   // New User Form States
   const [newUserEmail, setNewUserEmail] = useState("");
@@ -65,6 +72,7 @@ export default function AdminDashboard() {
     
     if (!token || !storedUser) {
       setIsAdmin(false);
+      setShowLoginForm(true);
       setLoading(false);
       return;
     }
@@ -74,13 +82,41 @@ export default function AdminDashboard() {
       setAdminUser(user);
       if (user.email === "admin@zydrakon.ai" || user.role === "admin") {
         setIsAdmin(true);
+        setShowLoginForm(false);
       } else {
         setIsAdmin(false);
+        setShowLoginForm(false);
       }
     } catch {
       setIsAdmin(false);
+      setShowLoginForm(true);
     }
+    setLoading(false);
   }, []);
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    setLoginError(null);
+    try {
+      const res = await api.login({ email: loginEmail, password: loginPassword });
+      
+      // Check if logged in user is actually an admin
+      if (res.user.email === "admin@zydrakon.ai" || res.user.role === "admin") {
+        setAdminUser(res.user);
+        setIsAdmin(true);
+        setShowLoginForm(false);
+      } else {
+        setAdminUser(res.user);
+        setIsAdmin(false);
+        setShowLoginForm(false);
+      }
+    } catch (err: any) {
+      setLoginError(err?.message || "Invalid admin credentials. Please try again.");
+    } finally {
+      setLoginLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (isAdmin === true) {
@@ -138,7 +174,7 @@ export default function AdminDashboard() {
     }
   };
 
-  if (isAdmin === null || (loading && usersList.length === 0)) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-[#030712] text-gray-200 flex flex-col items-center justify-center space-y-4">
         <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
@@ -147,26 +183,125 @@ export default function AdminDashboard() {
     );
   }
 
+  // 1. Show Admin Login Page if requested/not logged in
+  if (showLoginForm) {
+    return (
+      <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center p-6 relative overflow-hidden select-none">
+        {/* Ambient Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-orange-600/10 blur-[130px] rounded-full pointer-events-none" />
+
+        <div className="max-w-md w-full bg-zinc-950 border border-zinc-800 p-8 rounded-3xl backdrop-blur-md relative z-10 space-y-6">
+          <div className="text-center space-y-2">
+            <div className="w-16 h-16 bg-orange-950/20 border border-orange-500/30 text-orange-500 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-orange-950/30">
+              <Shield className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-white mt-4">Admin Control Center</h1>
+            <p className="text-xs text-zinc-500">
+              Sign in with authorized administrator credentials.
+            </p>
+          </div>
+
+          {loginError && (
+            <div className="p-3 bg-red-950/20 border border-red-500/30 text-red-400 text-xs rounded-xl font-medium">
+              ⚠️ {loginError}
+            </div>
+          )}
+
+          <form onSubmit={handleAdminLogin} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider pl-1">Email or Username</label>
+              <div className="relative flex items-center bg-[#000000]/40 border border-zinc-800 rounded-2xl p-3 focus-within:border-orange-500/60 focus-within:ring-1 focus-within:ring-orange-500/20 transition-all">
+                <Mail className="w-4 h-4 text-zinc-500 shrink-0 mr-2.5" />
+                <input
+                  type="email"
+                  required
+                  placeholder="admin@zydrakon.ai"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  className="w-full bg-transparent text-xs md:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider pl-1">Password</label>
+              <div className="relative flex items-center bg-[#000000]/40 border border-zinc-800 rounded-2xl p-3 focus-within:border-orange-500/60 focus-within:ring-1 focus-within:ring-orange-500/20 transition-all">
+                <Lock className="w-4 h-4 text-zinc-500 shrink-0 mr-2.5" />
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full bg-transparent text-xs md:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loginLoading}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-bold text-sm tracking-wide shadow-lg shadow-orange-950/40 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {loginLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Sign In as Admin</span>}
+            </button>
+          </form>
+
+          <div className="pt-2 text-center border-t border-zinc-900">
+            <Link
+              href="/"
+              className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors inline-flex items-center gap-1"
+            >
+              <ArrowLeft className="w-3 h-3" /> Back to Zydrakon AI
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Show Access Denied if logged in but NOT admin
   if (isAdmin === false) {
     return (
-      <div className="min-h-screen bg-[#030712] text-gray-200 flex flex-col items-center justify-center p-6">
-        <div className="max-w-md w-full text-center space-y-6 bg-zinc-900/40 border border-zinc-800 p-8 rounded-3xl backdrop-blur-md">
-          <div className="w-16 h-16 bg-red-950/30 border border-red-500/30 text-red-500 rounded-2xl flex items-center justify-center mx-auto">
+      <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center p-6 relative overflow-hidden">
+        {/* Ambient Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-red-950/10 blur-[130px] rounded-full pointer-events-none" />
+
+        <div className="max-w-md w-full text-center space-y-6 bg-zinc-950 border border-zinc-800 p-8 rounded-3xl backdrop-blur-md relative z-10">
+          <div className="w-16 h-16 bg-red-950/20 border border-red-500/30 text-red-500 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-red-950/30">
             <Shield className="w-8 h-8" />
           </div>
           <div className="space-y-2">
             <h1 className="text-2xl font-bold tracking-tight text-white">Access Denied</h1>
-            <p className="text-sm text-zinc-400">
+            <p className="text-xs text-zinc-500 leading-relaxed">
+              Logged in as <span className="text-zinc-300 font-semibold">{adminUser?.email}</span>.<br />
               You do not have administrator permissions to access this control panel.
             </p>
           </div>
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center gap-2 w-full px-4 py-3 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white font-semibold transition-all shadow-lg shadow-orange-950/40"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Zydrakon AI
-          </Link>
+
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => {
+                localStorage.removeItem("zydrakon_token");
+                localStorage.removeItem("zydrakon_refresh_token");
+                localStorage.removeItem("zydrakon_user");
+                setAdminUser(null);
+                setIsAdmin(null);
+                setShowLoginForm(true);
+              }}
+              className="inline-flex items-center justify-center gap-2 w-full px-4 py-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white font-semibold transition-all cursor-pointer text-xs md:text-sm"
+            >
+              Sign In with Another Account
+            </button>
+            
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center gap-2 w-full px-4 py-3 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white font-semibold transition-all shadow-lg shadow-orange-950/40 text-xs md:text-sm"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Zydrakon AI
+            </Link>
+          </div>
         </div>
       </div>
     );
