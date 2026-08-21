@@ -21,7 +21,10 @@ import {
   ExternalLink,
   Copy,
   Check,
-  Lock
+  Lock,
+  RotateCcw,
+  GitBranch,
+  Swords
 } from "lucide-react";
 import { Message, Session, RateLimits } from "@/lib/types";
 import { api, ApiError } from "@/lib/api";
@@ -199,6 +202,52 @@ export default function Home() {
       setLimits(l);
     } catch (err) {
       setLimits(null);
+    }
+  };
+
+  const handleReplay = async (messageId?: string) => {
+    if (!activeSessionId || !messageId || isLoading) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      await api.replayMessage(activeSessionId, messageId, selectedModel, thinkingMode);
+      await loadMessages(activeSessionId);
+      await loadLimits(activeSessionId);
+    } catch (err: any) {
+      setError(err?.message || "Failed to replay message");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleBranch = async (messageId?: string) => {
+    if (!activeSessionId || !messageId || isLoading) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const newSession = await api.branchSession(activeSessionId, messageId);
+      await loadSessions();
+      setActiveSessionId(newSession.id);
+      alert("🌿 Branched session created successfully!");
+    } catch (err: any) {
+      setError(err?.message || "Failed to branch session");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleProveIt = async (messageId?: string) => {
+    if (!activeSessionId || !messageId || isLoading) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      await api.proveIt(activeSessionId, messageId, selectedModel);
+      await loadMessages(activeSessionId);
+      await loadLimits(activeSessionId);
+    } catch (err: any) {
+      setError(err?.message || "Failed to challenge response");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -834,6 +883,43 @@ function formatMarkdownInline(text: string): React.ReactNode {
                       {/* Animated Typing Cursor if streaming */}
                       {(msg as any).isStreaming && (
                         <span className="inline-block w-2 h-4 ml-1 bg-orange-500 animate-pulse rounded-sm align-middle" />
+                      )}
+
+                      {/* Interactive Actions Toolbar */}
+                      {msg.id && !isLoading && !isStreamingMsg && (
+                        <div className={`mt-3 flex items-center gap-3 text-zinc-500 ${msg.role === 'user' ? 'justify-end' : 'justify-start'} select-none border-t border-zinc-900/60 pt-2`}>
+                          {/* Replay Button */}
+                          <button
+                            onClick={() => handleReplay(msg.id)}
+                            title="🔄 Replay (Regenerate answer)"
+                            className="flex items-center gap-1.5 text-[10px] md:text-xs font-semibold hover:text-orange-500 transition-colors p-1 px-2 rounded-lg bg-zinc-950/40 hover:bg-zinc-950 border border-zinc-900/80 hover:border-zinc-800 cursor-pointer shadow-sm"
+                          >
+                            <RotateCcw className="w-3 h-3 shrink-0" />
+                            <span>Replay</span>
+                          </button>
+                          
+                          {/* Branch Button */}
+                          <button
+                            onClick={() => handleBranch(msg.id)}
+                            title="🌿 Continue From Here (Start a new branch)"
+                            className="flex items-center gap-1.5 text-[10px] md:text-xs font-semibold hover:text-emerald-500 transition-colors p-1 px-2 rounded-lg bg-zinc-950/40 hover:bg-zinc-950 border border-zinc-900/80 hover:border-zinc-800 cursor-pointer shadow-sm"
+                          >
+                            <GitBranch className="w-3 h-3 shrink-0" />
+                            <span>Branch</span>
+                          </button>
+
+                          {/* Prove It Button (only for Assistant responses) */}
+                          {msg.role === "assistant" && (
+                            <button
+                              onClick={() => handleProveIt(msg.id)}
+                              title="⚔️ Prove It (Analyze supporting/counter evidence)"
+                              className="flex items-center gap-1.5 text-[10px] md:text-xs font-semibold hover:text-blue-500 transition-colors p-1 px-2 rounded-lg bg-zinc-950/40 hover:bg-zinc-950 border border-zinc-900/80 hover:border-zinc-800 cursor-pointer shadow-sm"
+                            >
+                              <Swords className="w-3 h-3 shrink-0" />
+                              <span>Prove It</span>
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>

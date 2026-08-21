@@ -200,6 +200,42 @@ class ApiClient {
   async getAdminLogs(): Promise<any[]> {
     return this.request<any[]>("/api/admin/logs");
   }
+
+  async replayMessage(sessionId: string, messageId: string, model?: string, thinking?: boolean): Promise<ChatResponse> {
+    return this.request<ChatResponse>("/api/chat/replay", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: sessionId,
+        message_id: messageId,
+        model,
+        thinking
+      }),
+    });
+  }
+
+  async branchSession(sessionId: string, messageId: string): Promise<Session> {
+    return this.request<Session>("/api/sessions/branch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: sessionId,
+        message_id: messageId
+      }),
+    });
+  }
+
+  async proveIt(sessionId: string, messageId: string, model?: string): Promise<ChatResponse> {
+    return this.request<ChatResponse>("/api/chat/prove-it", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: sessionId,
+        message_id: messageId,
+        model
+      }),
+    });
+  }
 }
 
 export const api = new ApiClient();

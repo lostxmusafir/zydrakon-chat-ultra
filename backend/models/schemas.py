@@ -57,6 +57,7 @@ class SessionResponse(BaseModel):
     created_at: str
 
 class MessageResponse(BaseModel):
+    id: Optional[str] = None
     role: str
     content: str
     timestamp: str
@@ -81,3 +82,19 @@ class ErrorResponse(BaseModel):
     code: str
     message: str
     details: Dict[str, Any] = {}
+
+class ReplayRequest(BaseModel):
+    session_id: str
+    message_id: str
+    model: Optional[str] = None
+    thinking: Optional[bool] = None
+
+class BranchRequest(BaseModel):
+    session_id: str
+    message_id: str
+
+class ProveItRequest(BaseModel):
+    session_id: str
+    message_id: str
+    model: Optional[str] = None
+

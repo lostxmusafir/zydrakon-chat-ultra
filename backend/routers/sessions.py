@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends
 from backend.models.database import get_db
-from backend.models.schemas import SessionResponse, MessageResponse, SessionListResponse, MessagesListResponse
+from backend.models.schemas import SessionResponse, MessageResponse, SessionListResponse, MessagesListResponse, BranchRequest
 from backend.utils.auth import get_current_user
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
@@ -86,6 +86,7 @@ async def get_messages(session_id: str, user: dict = Depends(get_current_user)):
 
             messages.append(
                 MessageResponse(
+                    id=doc.get("id", str(doc.get("_id"))),
                     role=doc["role"],
                     content=doc["content"],
                     timestamp=dt_str,
@@ -99,3 +100,62 @@ async def get_messages(session_id: str, user: dict = Depends(get_current_user)):
         raise he
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get messages: {str(e)}")
+
+@router.post("/branch", response_model=SessionResponse)
+async def branch_session(req: BranchRequest, user: dict = Depends(get_current_user)):
+    db = get_db()
+    try:
+        # 1. Verify session exists and belongs to the user
+        session = db.sessions.find_one({"id": req.session_id, "user_id": user["id"]})
+        if not session:
+            raise HTTPException(status_code=404, detail="Source session not found or unauthorized")
+        
+        # 2. Find the target message in database
+        target_msg = db.messages.find_one({"session_id": req.session_id, "id": req.message_id})
+        if not target_msg:
+            # Fallback to check using MongoDB ObjectID if id is missing
+            try:
+                from bson import ObjectId
+                target_msg = db.messages.find_one({"session_id": req.session_id, "_id": ObjectId(req.message_id)})
+            except Exception:
+                pass
+            if not target_msg:
+                raise HTTPException(status_code=404, detail="Target message not found")
+        
+        # 3. Fetch all messages up to the target message's timestamp
+        cursor = db.messages.find({
+            "session_id": req.session_id,
+            "timestamp": {"$lte": target_msg["timestamp"]}
+        }).sort("timestamp", 1)
+        
+        history_messages = list(cursor)
+        
+        # 4. Create new branched session
+        new_session_id = str(uuid.uuid4())
+        now = datetime.utcnow()
+        db.sessions.insert_one({
+            "id": new_session_id,
+            "created_at": now,
+            "user_id": user["id"],
+            "branched_from": req.session_id
+        })
+        
+        # 5. Copy history messages into the new session
+        for msg in history_messages:
+            db.messages.insert_one({
+                "id": msg.get("id", str(uuid.uuid4())),
+                "session_id": new_session_id,
+                "role": msg["role"],
+                "content": msg["content"],
+                "timestamp": msg["timestamp"],
+                "model_used": msg.get("model_used"),
+                "search_query": msg.get("search_query"),
+                "search_results": msg.get("search_results")
+            })
+            
+        return SessionResponse(id=new_session_id, created_at=now.isoformat() + "Z")
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to branch session: {str(e)}")
+
