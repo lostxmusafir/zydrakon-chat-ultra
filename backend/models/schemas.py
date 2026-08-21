@@ -15,6 +15,7 @@ class User(BaseModel):
     name: Optional[str] = None
     picture: Optional[str] = None
     tier: Optional[str] = "free"
+    role: Optional[str] = "user"
     allowed_models: Optional[List[str]] = None
 
 class UserCreate(BaseModel):

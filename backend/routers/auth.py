@@ -104,6 +104,7 @@ async def login(user_in: UserLogin):
             email=user["email"],
             name=user.get("name"),
             tier=user.get("tier", "free"),
+            role=user.get("role", "admin" if user["email"] == "admin@zydrakon.ai" else "user"),
             allowed_models=user.get("allowed_models")
         )
     )
@@ -186,5 +187,6 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         email=current_user.get("email", "guest@zydrakon.ai"),
         name=current_user.get("name", "Guest User"),
         tier=current_user.get("tier", "free"),
+        role=current_user.get("role", "admin" if current_user.get("email") == "admin@zydrakon.ai" else "user"),
         allowed_models=current_user.get("allowed_models")
     )

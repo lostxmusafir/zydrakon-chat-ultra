@@ -44,7 +44,7 @@ def create_users():
             {"$set": user_doc},
             upsert=True
         )
-        print(f"✅ Success! Account created/updated:")
+        print(f"Success! Account created/updated:")
         print(f"   Email:    {email}")
         print(f"   Password: {acc['password']}")
         print(f"   Name:     {acc['name']}\n")

@@ -543,6 +543,7 @@ function formatMarkdownInline(text: string): React.ReactNode {
           setIsAuthenticated(true);
           setCurrentUser(user);
           setShowFullLoginPage(false);
+          loadSessions();
         }}
         onContinueGuest={() => setShowFullLoginPage(false)}
       />
@@ -684,6 +685,7 @@ function formatMarkdownInline(text: string): React.ReactNode {
                     localStorage.removeItem("zydrakon_user");
                     setIsAuthenticated(false);
                     setCurrentUser(null);
+                    loadSessions();
                   }}
                   className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-red-400 transition-colors"
                   title="Log out"
@@ -841,7 +843,7 @@ function formatMarkdownInline(text: string): React.ReactNode {
               {/* Agent Loader when thinking */}
               {isLoading && (
                 <div className="flex flex-col items-start animate-message">
-                  <AgentLoader agentId={selectedAgentId} agentName={activeAgent.name} />
+                  <AgentLoader />
                 </div>
               )}
 

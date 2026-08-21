@@ -8,7 +8,7 @@ if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
 from backend.models.database import get_db, init_db
-from backend.scripts.create_user.py import create_gold_users if False else None
+from backend.scripts.create_user import create_gold_users
 
 BASE_URL = "http://127.0.0.1:8000/api/auth"
 
