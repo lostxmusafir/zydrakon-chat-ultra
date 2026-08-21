@@ -44,8 +44,9 @@ async def list_users(admin: dict = Depends(get_current_admin)):
     for u in users_cursor:
         dt = u.get("created_at")
         dt_str = dt.isoformat() + "Z" if isinstance(dt, datetime) else str(dt) if dt else None
+        user_id = u.get("id") or str(u["_id"])
         users_list.append(AdminUserResponse(
-            id=u["id"],
+            id=user_id,
             email=u["email"],
             name=u.get("name"),
             role=u.get("role", "admin" if u["email"] == "admin@zydrakon.ai" else "user"),
@@ -156,7 +157,14 @@ class UserTierUpdate(BaseModel):
 async def update_user_tier(user_id: str, tier_in: UserTierUpdate, admin: dict = Depends(get_current_admin)):
     """Update a user's tier and their allowed models list."""
     db = get_db()
+    from bson import ObjectId
+    # Support both custom 'id' string field and MongoDB '_id'
     user = db.users.find_one({"id": user_id})
+    if not user:
+        try:
+            user = db.users.find_one({"_id": ObjectId(user_id)})
+        except Exception:
+            pass
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
@@ -170,20 +178,17 @@ async def update_user_tier(user_id: str, tier_in: UserTierUpdate, admin: dict = 
         else ["zydrakon-free"]
     )
     
-    db.users.update_one(
-        {"id": user_id},
-        {"$set": {
-            "tier": tier,
-            "allowed_models": allowed_models
-        }}
-    )
+    # Update by whichever key matches
+    query = {"id": user["id"]} if user.get("id") else {"_id": user["_id"]}
+    db.users.update_one(query, {"$set": {"tier": tier, "allowed_models": allowed_models}})
     
-    updated_user = db.users.find_one({"id": user_id})
+    updated_user = db.users.find_one(query)
     dt = updated_user.get("created_at")
     dt_str = dt.isoformat() + "Z" if isinstance(dt, datetime) else str(dt) if dt else None
+    resolved_id = updated_user.get("id") or str(updated_user["_id"])
     
     return AdminUserResponse(
-        id=updated_user["id"],
+        id=resolved_id,
         email=updated_user["email"],
         name=updated_user.get("name"),
         role=updated_user.get("role", "user"),
@@ -195,10 +200,20 @@ async def update_user_tier(user_id: str, tier_in: UserTierUpdate, admin: dict = 
 async def delete_user(user_id: str, admin: dict = Depends(get_current_admin)):
     """Delete a user by ID. Admin account cannot be deleted."""
     db = get_db()
+    from bson import ObjectId
     user = db.users.find_one({"id": user_id})
+    if not user:
+        try:
+            user = db.users.find_one({"_id": ObjectId(user_id)})
+        except Exception:
+            pass
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     if user.get("role") == "admin":
         raise HTTPException(status_code=403, detail="Cannot delete admin account")
-    db.users.delete_one({"id": user_id})
+    # Delete by whichever key works
+    if user.get("id"):
+        db.users.delete_one({"id": user["id"]})
+    else:
+        db.users.delete_one({"_id": user["_id"]})
 
