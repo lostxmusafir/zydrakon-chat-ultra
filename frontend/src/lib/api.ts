@@ -244,6 +244,12 @@ class ApiClient {
       body: JSON.stringify({ tier }),
     });
   }
+
+  async deleteUser(userId: string): Promise<void> {
+    return this.request<void>(`/api/admin/users/${userId}`, {
+      method: "DELETE",
+    });
+  }
 }
 
 export const api = new ApiClient();

@@ -14,7 +14,8 @@ import {
   ArrowLeft,
   Mail,
   Lock,
-  User
+  User,
+  Trash2
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import Link from "next/link";
@@ -421,6 +422,7 @@ export default function AdminDashboard() {
                       <th className="py-4 px-6">Role</th>
                       <th className="py-4 px-6">Tier</th>
                       <th className="py-4 px-6">Joined</th>
+                      <th className="py-4 px-6">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800/40 text-zinc-300">
@@ -470,6 +472,29 @@ export default function AdminDashboard() {
                           </td>
                           <td className="py-4 px-6 text-zinc-500 font-mono">
                             {user.created_at ? new Date(user.created_at).toLocaleDateString() : "N/A"}
+                          </td>
+                          <td className="py-4 px-6">
+                            {user.role !== "admin" && (
+                              <button
+                                disabled={actionLoading}
+                                onClick={async () => {
+                                  if (!confirm(`"${user.name}" ko delete karna chahte hain?`)) return;
+                                  try {
+                                    setActionLoading(true);
+                                    await api.deleteUser(user.id);
+                                    setUsersList((prev) => prev.filter((u) => u.id !== user.id));
+                                  } catch (err: any) {
+                                    alert(err?.message || "Delete failed");
+                                  } finally {
+                                    setActionLoading(false);
+                                  }
+                                }}
+                                className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors disabled:opacity-40 cursor-pointer"
+                                title="Delete User"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))

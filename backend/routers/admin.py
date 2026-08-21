@@ -191,3 +191,14 @@ async def update_user_tier(user_id: str, tier_in: UserTierUpdate, admin: dict = 
         created_at=dt_str
     )
 
+@router.delete("/users/{user_id}", status_code=204)
+async def delete_user(user_id: str, admin: dict = Depends(get_current_admin)):
+    """Delete a user by ID. Admin account cannot be deleted."""
+    db = get_db()
+    user = db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.get("role") == "admin":
+        raise HTTPException(status_code=403, detail="Cannot delete admin account")
+    db.users.delete_one({"id": user_id})
+
