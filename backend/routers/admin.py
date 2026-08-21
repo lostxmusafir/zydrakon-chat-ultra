@@ -42,13 +42,15 @@ async def list_users(admin: dict = Depends(get_current_admin)):
     users_cursor = db.users.find()
     users_list = []
     for u in users_cursor:
+        dt = u.get("created_at")
+        dt_str = dt.isoformat() + "Z" if isinstance(dt, datetime) else str(dt) if dt else None
         users_list.append(AdminUserResponse(
             id=u["id"],
             email=u["email"],
             name=u.get("name"),
             role=u.get("role", "admin" if u["email"] == "admin@zydrakon.ai" else "user"),
             tier=u.get("tier", "free"),
-            created_at=u.get("created_at")
+            created_at=dt_str
         ))
     return users_list
 
