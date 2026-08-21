@@ -20,9 +20,9 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 def create_access_token(data: dict) -> str:
-    """Create a JWT Access Token with a 12-hour expiry."""
+    """Create a JWT Access Token with a 60-minute expiry."""
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(hours=settings.ACCESS_TOKEN_EXPIRE_HOURS)
+    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire, "type": "access"})
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm="HS256")
     return encoded_jwt

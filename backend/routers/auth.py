@@ -91,7 +91,7 @@ async def login(user_in: UserLogin):
             headers={"WWW-Authenticate": "Bearer"},
         )
         
-    # 3. Generate 12-hour JWT access token & 7-day refresh token
+    # 3. Generate 60-minute JWT access token & 7-day refresh token
     access_token = create_access_token(data={"sub": user["id"]})
     refresh_token = create_refresh_token(data={"sub": user["id"]})
     
@@ -111,7 +111,7 @@ async def login(user_in: UserLogin):
 
 @router.post("/refresh", response_model=RefreshResponse)
 async def refresh_tokens(req: RefreshRequest):
-    """Refreshes a 12-hour access token using a valid 7-day refresh token."""
+    """Refreshes a 60-minute access token using a valid 7-day refresh token."""
     payload = verify_refresh_token(req.refresh_token)
     if not payload or not payload.get("sub"):
         raise HTTPException(

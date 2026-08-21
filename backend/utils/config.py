@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     MONGODB_URL: str = ""
     GOOGLE_CLIENT_ID: str = ""
     JWT_SECRET: str = "your_super_secret_jwt_key_here_override_in_env"
-    ACCESS_TOKEN_EXPIRE_HOURS: int = 12
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     model_config = SettingsConfigDict(
