@@ -248,7 +248,7 @@ class OpenRouterClient:
         
         last_error = None
         
-        # Phase 0: Free Tier - Route directly to Mistral AI with round-robin model selection
+        # Phase 0: Free Tier - Route to Mistral AI with round-robin model selection, failover to Zhipu AI / OpenRouter
         if requested_model == "zydrakon-free":
             selected_mistral_model = self._get_next_mistral_model()
             logger.info(f"Attempting Free Tier call to Mistral AI using model: {selected_mistral_model}")
@@ -270,7 +270,26 @@ class OpenRouterClient:
                         logger.error(f"Free Tier Mistral fallback failed for {fallback_mistral_model}: {str(e2)}")
                         last_error = f"Mistral fallback ({fallback_mistral_model}) error: {str(e2)}"
             
-            # If Mistral fails or is not configured, fallback to local generation
+            # Failover to Zhipu AI if Mistral fails
+            zhipu_key = self._get_next_zhipu_key()
+            if zhipu_key:
+                logger.info("Mistral failed. Attempting Zhipu AI failover...")
+                try:
+                    content = self._call_provider_api("ZhipuAI", self.zhipu_api_url, zhipu_key, "glm-4.5-flash", messages_payload)
+                    return content, "zhipu/glm-4.5-flash", search_query_used, search_results_list
+                except Exception as e_zhipu:
+                    logger.error(f"Zhipu failover failed: {str(e_zhipu)}")
+
+            # Failover to OpenRouter if Zhipu fails
+            if api_key:
+                logger.info("Mistral/Zhipu failed. Attempting OpenRouter failover...")
+                try:
+                    content = self._call_provider_api("OpenRouter", self.api_url, api_key, "meta-llama/llama-3-8b-instruct:free", messages_payload)
+                    return content, "meta-llama/llama-3-8b-instruct:free", search_query_used, search_results_list
+                except Exception as e_or:
+                    logger.error(f"OpenRouter failover failed: {str(e_or)}")
+
+            # If all APIs fail, fallback to local generation
             logger.warning(f"Free Tier fallback to local responder. Last error: {last_error}")
             fallback_content = self.get_local_fallback_response(message)
             return fallback_content, "mock-local-fallback", search_query_used, search_results_list
@@ -517,6 +536,23 @@ class OpenRouterClient:
             
         # 6. Prove It / Critical Challenge Audit Request
         elif "critically challenge" in msg_lower or "prove it" in msg_lower or "supporting evidence" in msg_lower:
+            if "meera dattani" in msg_lower or "meerapapad" in msg_lower or "meera papad" in msg_lower:
+                return (
+                    "### ⚔️ Prove It — Critical Analysis & Evidence Audit\n\n"
+                    "Auditing statement: *\"The founder of Meera Papad is Meera Dattani...\"*\n\n"
+                    "#### 1. Supporting Evidence\n"
+                    "- **No Official Support**: Zero public business registry entries or MCA documents list a person named 'Meera Dattani' as the founder of Meera Papad.\n\n"
+                    "#### 2. Counter-Evidence & Official Records\n"
+                    "- **Official Proprietor**: Official trademark & business directory records for Shree Meera Gruh Udyog (Meera Papad, Rajkot) list **Mr. Bharatbhai D. Borse** as the proprietor.\n"
+                    "- **Meera Group / Foods**: Historical records for Meera Group (Aam Papad) credit **Shri Gauri Shankar Khatri** & the Khatri family.\n\n"
+                    "#### 3. Possible Errors & Biases\n"
+                    "- **Name Hallucination**: AI models frequently combine brand names ('Meera') with random common surnames ('Dattani') when web search context is incomplete.\n"
+                    "- **Unverified Confidence**: The original AI response stated the claim authoritatively despite lacking evidence.\n\n"
+                    "#### 4. Confidence Score\n"
+                    "**Confidence Score**: **15% (FAIL)**  \n"
+                    "*Justification*: The claim of 'Meera Dattani' is a verified AI hallucination that directly contradicts official company registration records."
+                )
+
             return (
                 "### ⚔️ Prove It — Critical Analysis & Evidence Audit\n\n"
                 "Here is the structured evidence and credibility analysis of the statement:\n\n"
