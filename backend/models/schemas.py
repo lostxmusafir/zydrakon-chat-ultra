@@ -51,6 +51,7 @@ class ChatResponse(BaseModel):
     latency_ms: int
     search_query: Optional[str] = None
     search_results: Optional[List[SearchResult]] = None
+    storage_status: Optional[Dict[str, Any]] = None
 
 class SessionResponse(BaseModel):
     id: str
@@ -97,4 +98,41 @@ class ProveItRequest(BaseModel):
     session_id: str
     message_id: str
     model: Optional[str] = None
+
+class WorkspaceCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=300)
+
+class WorkspaceAddMember(BaseModel):
+    email: str = Field(..., min_length=3, description="Email of valid registered user to add")
+
+class WorkspaceMemberInfo(BaseModel):
+    id: str
+    email: str
+    name: str
+    role: str  # "owner" | "member"
+
+class WorkspaceResponse(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+    owner_id: str
+    members: List[WorkspaceMemberInfo]
+    created_at: str
+
+class WorkspaceMessageCreate(BaseModel):
+    content: str = Field(..., min_length=1)
+    model: Optional[str] = Field("meta-llama/llama-3-8b-instruct:free")
+    ask_ai: Optional[bool] = Field(False, description="Whether to trigger an AI answer in team chat")
+
+class WorkspaceMessageResponse(BaseModel):
+    id: str
+    workspace_id: str
+    sender_id: str
+    sender_name: str
+    sender_email: str
+    content: str
+    timestamp: str
+    model_used: Optional[str] = None
+    is_ai: bool = False
 

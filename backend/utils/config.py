@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     JWT_SECRET: str = "your_super_secret_jwt_key_here_override_in_env"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    MAX_DB_SIZE_MB: float = 512.0
 
     model_config = SettingsConfigDict(
         env_file=os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"),

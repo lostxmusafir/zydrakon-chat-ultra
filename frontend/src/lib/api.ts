@@ -1,4 +1,4 @@
-import { Session, Message, ChatResponse, RateLimits } from "./types";
+import { Session, Message, ChatResponse, RateLimits, StorageStatus, Workspace, WorkspaceMember, WorkspaceMessage } from "./types";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 
@@ -254,6 +254,52 @@ class ApiClient {
   async adminLogout(): Promise<any> {
     return this.request<any>("/api/admin/logout", {
       method: "POST",
+    });
+  }
+
+  async getStorageStatus(): Promise<StorageStatus> {
+    return this.request<StorageStatus>("/api/sessions/storage-status");
+  }
+
+  async createWorkspace(name: string, description?: string): Promise<Workspace> {
+    return this.request<Workspace>("/api/workspaces", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, description }),
+    });
+  }
+
+  async listWorkspaces(): Promise<Workspace[]> {
+    return this.request<Workspace[]>("/api/workspaces");
+  }
+
+  async getWorkspace(workspaceId: string): Promise<Workspace> {
+    return this.request<Workspace>(`/api/workspaces/${workspaceId}`);
+  }
+
+  async addWorkspaceMember(workspaceId: string, email: string): Promise<Workspace> {
+    return this.request<Workspace>(`/api/workspaces/${workspaceId}/members`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async removeWorkspaceMember(workspaceId: string, memberId: string): Promise<void> {
+    return this.request<void>(`/api/workspaces/${workspaceId}/members/${memberId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async getWorkspaceMessages(workspaceId: string): Promise<WorkspaceMessage[]> {
+    return this.request<WorkspaceMessage[]>(`/api/workspaces/${workspaceId}/messages`);
+  }
+
+  async sendWorkspaceMessage(workspaceId: string, content: string, askAi = false, model = "zydrakon-free"): Promise<WorkspaceMessage> {
+    return this.request<WorkspaceMessage>(`/api/workspaces/${workspaceId}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content, ask_ai: askAi, model }),
     });
   }
 }

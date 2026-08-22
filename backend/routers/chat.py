@@ -10,6 +10,7 @@ from backend.models.schemas import ChatRequest, ChatResponse, RateLimitInfo, Rep
 from backend.services.openrouter import openrouter_client
 from backend.services.cache import cache_service
 from backend.services.rate_limiter import rate_limiter
+from backend.services.storage_monitor import check_and_enforce_storage_limits
 from backend.utils.config import settings
 from backend.utils.identity import detect_identity_query
 from backend.utils.auth import get_current_user
@@ -201,13 +202,16 @@ async def chat(chat_request: ChatRequest, request: Request, user: dict = Depends
     # Record the request for rate limiting (since it wasn't cached)
     rate_limiter.record_request(rate_limit_key)
 
+    storage_info = check_and_enforce_storage_limits()
+
     return ChatResponse(
         response=reply_content,
         model_used=actual_model,
         cached=False,
         latency_ms=latency_ms,
         search_query=search_query,
-        search_results=search_results
+        search_results=search_results,
+        storage_status=storage_info
     )
 
 @router.get("/limits", response_model=RateLimitInfo)

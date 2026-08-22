@@ -26,6 +26,18 @@ export interface RateLimits {
   daily_remaining: number;
 }
 
+export interface StorageStatus {
+  used_bytes: number;
+  max_bytes: number;
+  used_percent: number;
+  used_mb: number;
+  max_mb: number;
+  warning_80: boolean;
+  critical_90: boolean;
+  purged?: boolean;
+  message: string;
+}
+
 export interface ChatResponse {
   response: string;
   model_used: string;
@@ -33,4 +45,33 @@ export interface ChatResponse {
   latency_ms: number;
   search_query?: string;
   search_results?: SearchResult[];
+  storage_status?: StorageStatus;
+}
+
+export interface WorkspaceMember {
+  id: string;
+  email: string;
+  name: string;
+  role: "owner" | "member";
+}
+
+export interface Workspace {
+  id: string;
+  name: string;
+  description?: string;
+  owner_id: string;
+  members: WorkspaceMember[];
+  created_at: string;
+}
+
+export interface WorkspaceMessage {
+  id: string;
+  workspace_id: string;
+  sender_id: string;
+  sender_name: string;
+  sender_email: string;
+  content: string;
+  timestamp: string;
+  model_used?: string;
+  is_ai?: boolean;
 }

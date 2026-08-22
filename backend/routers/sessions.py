@@ -5,8 +5,13 @@ from fastapi import APIRouter, HTTPException, Depends
 from backend.models.database import get_db
 from backend.models.schemas import SessionResponse, MessageResponse, SessionListResponse, MessagesListResponse, BranchRequest
 from backend.utils.auth import get_current_user
+from backend.services.storage_monitor import check_and_enforce_storage_limits
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
+
+@router.get("/storage-status")
+async def get_storage_status():
+    return check_and_enforce_storage_limits()
 
 @router.post("", response_model=SessionResponse)
 async def create_session(user: dict = Depends(get_current_user)):
