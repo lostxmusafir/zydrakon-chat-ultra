@@ -194,6 +194,20 @@ def test_identity_orchestration():
     data_pb = res_pb.json()
     assert "neural network architecture" in data_pb["response"]
 
+    # 4. Ask about location / residence of Raj Patil
+    chat_payload_loc = {
+        "session_id": session_id,
+        "message": "Where is Raj Patil's house?",
+        "model": "meta-llama/llama-3-8b-instruct:free"
+    }
+    res_loc = client.post("/api/chat", json=chat_payload_loc)
+    assert res_loc.status_code == 200
+    data_loc = res_loc.json()
+    assert "India" in data_loc["response"]
+    assert "France" in data_loc["response"]
+    assert "4-Layer" in data_loc["response"]
+    assert data_loc["model_used"] == "zydrakon-orchestration"
+
 def test_thinking_mode_payload():
     resp = client.post("/api/sessions")
     session_id = resp.json()["id"]

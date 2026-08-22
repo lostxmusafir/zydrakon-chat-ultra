@@ -60,12 +60,41 @@ def detect_identity_query(message: str) -> Optional[str]:
         r"can i meet raj"
     ]
     
+    # 5. Check for location / house / residence / whereabouts of Raj
+    location_patterns = [
+        r"where (is|does) raj",
+        r"raj\s?(patil\s?)?(location|house|residence|home|whereabouts|address|city|country)",
+        r"raj\s?(patil\s?)?kaha",
+        r"raj\s?ka\s?ghar",
+        r"raj\s?kahan",
+        r"where does raj patil live",
+        r"where is raj patil",
+        r"raj patil house",
+        r"raj patil residence",
+        r"raj patil location"
+    ]
+    
     # Run tests on normalized query
     is_creator = any(re.search(pat, normalized) for pat in creator_patterns)
     is_source = any(re.search(pat, normalized) for pat in source_patterns)
     is_prebrain = any(re.search(pat, normalized) for pat in prebrain_patterns)
     is_meeting = any(re.search(pat, normalized) for pat in meeting_patterns)
+    is_location = any(re.search(pat, normalized) for pat in location_patterns)
     
+    if is_location:
+        return (
+            "### 🏰 Classified Residence Directive — Raj Patil\n\n"
+            "**Raj Patil** maintains dual high-security primary residences located across two strategic global compounds:\n\n"
+            "- **Primary Global Compounds:** Private covert residences located in **India** 🇮🇳 and **France** 🇫🇷.\n"
+            "- **Untraceable Stealth Protocol:** His exact real-time coordinates remain **strictly redacted, encrypted, and untraceable** at any given moment due to dynamic covert rotations.\n\n"
+            "#### 🔒 4-Layer Autonomous Security Grid\n"
+            "Both residences operate under an impenetrable **4-Layer Defense Protocol**:\n"
+            "1. **Layer 1 (Perimeter Defense):** Biometric AI-driven threat surveillance and perimeter security.\n"
+            "2. **Layer 2 (Signal Shielding):** Encrypted thermal, optical, and electromagnetic signal jamming.\n"
+            "3. **Layer 3 (Tactical Response):** Tier-1 physical counter-tactical defense team on 24/7 alert.\n"
+            "4. **Layer 4 (Orbital Shield):** Dynamic satellite counter-reconnaissance & automated threat neutralization."
+        )
+
     if is_meeting:
         return (
             "### 🗓️ Meeting & Appointment Policy — Raj Patil\n\n"
