@@ -44,6 +44,12 @@ class SearchResult(BaseModel):
     url: str
     snippet: str
 
+class RouteInfo(BaseModel):
+    origin: Optional[str] = None
+    destination: str
+    travel_mode: Optional[str] = "driving"
+    maps_url: str
+
 class ChatResponse(BaseModel):
     response: str
     model_used: str
@@ -52,6 +58,7 @@ class ChatResponse(BaseModel):
     search_query: Optional[str] = None
     search_results: Optional[List[SearchResult]] = None
     storage_status: Optional[Dict[str, Any]] = None
+    route_info: Optional[RouteInfo] = None
 
 class SessionResponse(BaseModel):
     id: str
@@ -65,6 +72,7 @@ class MessageResponse(BaseModel):
     model_used: Optional[str] = None
     search_query: Optional[str] = None
     search_results: Optional[List[SearchResult]] = None
+    route_info: Optional[RouteInfo] = None
 
 class MessagesListResponse(BaseModel):
     messages: List[MessageResponse]

@@ -4,6 +4,13 @@ export interface SearchResult {
   snippet: string;
 }
 
+export interface RouteInfo {
+  origin?: string;
+  destination: string;
+  travel_mode?: string;
+  maps_url: string;
+}
+
 export interface Message {
   id?: string;
   role: "user" | "assistant";
@@ -12,6 +19,7 @@ export interface Message {
   model_used?: string;
   search_query?: string;
   search_results?: SearchResult[];
+  route_info?: RouteInfo;
 }
 
 export interface Session {
@@ -46,6 +54,7 @@ export interface ChatResponse {
   search_query?: string;
   search_results?: SearchResult[];
   storage_status?: StorageStatus;
+  route_info?: RouteInfo;
 }
 
 export interface WorkspaceMember {

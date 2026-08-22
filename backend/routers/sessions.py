@@ -97,7 +97,8 @@ async def get_messages(session_id: str, user: dict = Depends(get_current_user)):
                     timestamp=dt_str,
                     model_used=doc.get("model_used"),
                     search_query=doc.get("search_query"),
-                    search_results=search_results
+                    search_results=search_results,
+                    route_info=doc.get("route_info")
                 )
             )
         return MessagesListResponse(messages=messages)

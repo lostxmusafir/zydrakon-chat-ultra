@@ -46,6 +46,7 @@ import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { LoginPage } from "@/components/LoginPage";
 import { ChangePasswordModal } from "@/components/ChangePasswordModal";
 import { WorkspacesModal } from "@/components/WorkspacesModal";
+import { RouteCard } from "@/components/RouteCard";
 
 const FREE_MODELS = [
   { id: "zydrakon-free", name: "Zydrakon AI (Free)" },
@@ -1142,6 +1143,11 @@ function formatMarkdownInline(text: string): React.ReactNode {
 
                       {/* Render Message Body */}
                       {renderMessageContent(msg.content)}
+
+                      {/* Google Maps Route Card */}
+                      {msg.route_info && (
+                        <RouteCard route={msg.route_info} />
+                      )}
 
                       {/* Animated Typing Cursor if streaming */}
                       {(msg as any).isStreaming && (

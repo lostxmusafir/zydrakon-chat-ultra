@@ -6,11 +6,12 @@ from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse
 from datetime import datetime, timedelta
 from backend.models.database import get_db
-from backend.models.schemas import ChatRequest, ChatResponse, RateLimitInfo, ReplayRequest, ProveItRequest
+from backend.models.schemas import ChatRequest, ChatResponse, RateLimitInfo, ReplayRequest, ProveItRequest, RouteInfo
 from backend.services.openrouter import openrouter_client
 from backend.services.cache import cache_service
 from backend.services.rate_limiter import rate_limiter
 from backend.services.storage_monitor import check_and_enforce_storage_limits
+from backend.services.navigation import navigation_service
 from backend.utils.config import settings
 from backend.utils.identity import detect_identity_query
 from backend.utils.auth import get_current_user
@@ -173,6 +174,10 @@ async def chat(chat_request: ChatRequest, request: Request, user: dict = Depends
     
     latency_ms = int((time.time() - start_time) * 1000)
 
+    # Extract Google Maps Navigation Route Info if query is route-related
+    route_data = navigation_service.extract_route_info(message_content)
+    route_obj = RouteInfo(**route_data) if route_data else None
+
     # 4. Save interactions and cache results
     try:
         now = datetime.utcnow()
@@ -189,7 +194,8 @@ async def chat(chat_request: ChatRequest, request: Request, user: dict = Depends
         db.messages.insert_one({
             "id": asst_msg_id, "session_id": session_id, "role": "assistant", 
             "content": reply_content, "timestamp": now, "model_used": actual_model,
-            "search_query": search_query, "search_results": search_results
+            "search_query": search_query, "search_results": search_results,
+            "route_info": route_data
         })
     except Exception as e:
         logger.error(f"Error saving live message interaction: {str(e)}")
@@ -211,7 +217,8 @@ async def chat(chat_request: ChatRequest, request: Request, user: dict = Depends
         latency_ms=latency_ms,
         search_query=search_query,
         search_results=search_results,
-        storage_status=storage_info
+        storage_status=storage_info,
+        route_info=route_obj
     )
 
 @router.get("/limits", response_model=RateLimitInfo)
