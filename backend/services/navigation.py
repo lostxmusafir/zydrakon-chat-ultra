@@ -52,13 +52,26 @@ class NavigationService:
         """
         msg_lower = user_message.lower().strip()
         
-        # Check if message matches any route intent
+        # Exclude non-navigation intent phrases (e.g., "want to meet", "how to meet", "try to talk")
+        non_route_phrases = [
+            r"\bwant\s+to\b", r"\blike\s+to\b", r"\bneed\s+to\b", r"\btrying?\s+to\b", r"\bplan\s+to\b", 
+            r"\bwish\s+to\b", r"\bhope\s+to\b", r"\bable\s+to\b", r"\bmeet\s+him\b", r"\bmeet\s+raj\b", 
+            r"\btalk\s+to\b", r"\bsee\s+raj\b", r"\bhow\s+can\s+i\s+meet\b"
+        ]
+        
+        # Check for explicit origin-destination syntax like "from X to Y" or "X se Y"
+        explicit_from_to = re.search(r'\bfrom\s+(.+?)\s+(?:to|tak)\s+(.+)', user_message, re.IGNORECASE)
+        explicit_se_to = re.search(r'(.+?)\s+se\s+(.+?)(?:\s+tak|\s+jaana|\s+jana|\s+kaise|$)', user_message, re.IGNORECASE)
+        
+        # Check if message matches any route intent keyword
         is_route_query = any(re.search(pat, msg_lower) for pat in self.intent_keywords)
         
-        # Also check if explicit origin and destination are present (e.g., "X to Y" or "from X to Y")
-        from_to_match = re.search(r'(?:from\s+)?(.+?)\s+(?:se|to|tak)\s+(.+)', user_message, re.IGNORECASE)
+        # If non-route phrase matched and no explicit 'from ... to' / '... se ...', reject immediately
+        if any(re.search(pat, msg_lower) for pat in non_route_phrases) and not explicit_from_to and not explicit_se_to:
+            return None
         
-        if not is_route_query and not (from_to_match and len(from_to_match.group(2)) > 2):
+        # If it's not a route query and has no explicit 'from ... to' / '... se ...', reject immediately
+        if not is_route_query and not explicit_from_to and not explicit_se_to:
             return None
 
         origin = None
