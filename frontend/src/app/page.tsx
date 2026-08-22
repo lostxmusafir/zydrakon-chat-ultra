@@ -363,7 +363,7 @@ export default function Home() {
   };
 
   // Stream AI response text character by character for Live AI Write effect in Chat
-  const streamResponseIntoChat = (fullResponseText: string, searchResults?: any[], searchQuery?: string) => {
+  const streamResponseIntoChat = (fullResponseText: string, searchResults?: any[], searchQuery?: string, targetSessionId?: string) => {
     setIsStreamingMsg(true);
     let currentLen = 0;
     const totalLen = fullResponseText.length;
@@ -413,6 +413,10 @@ export default function Home() {
           }
           return [...prev];
         });
+        const sid = targetSessionId || activeSessionId;
+        if (sid) {
+          loadMessages(sid);
+        }
       }
     }, 15);
   };
@@ -457,13 +461,13 @@ export default function Home() {
       );
 
       setIsLoading(false);
-      streamResponseIntoChat(response.response, response.search_results, response.search_query);
+      streamResponseIntoChat(response.response, response.search_results, response.search_query, currentSession);
       if (currentSession) loadLimits(currentSession);
     } catch (err: any) {
       setIsLoading(false);
       console.error("Orchestrator error:", err);
       const errorMsg = err?.message || "Unable to reach Zydrakon AI backend orchestrator. Please verify backend is running.";
-      streamResponseIntoChat(`⚠️ **Zydrakon AI Orchestrator Notice**: ${errorMsg}`);
+      streamResponseIntoChat(`⚠️ **Zydrakon AI Orchestrator Notice**: ${errorMsg}`, undefined, undefined, currentSession);
     }
   };
 
