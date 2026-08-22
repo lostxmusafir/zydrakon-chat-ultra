@@ -24,18 +24,17 @@ class OpenRouterClient:
         self.mistral_api_url = f"{settings.MISTRAL_BASE_URL}/chat/completions"
         self.mistral_key_index = 0
         self.mistral_model_index = 0
-        self.mistral_models = ["mistral-large-latest", "mistral-medium-latest"]
+        self.mistral_models = ["mistral-small-latest", "open-mistral-7b"]
         self.zhipu_api_url = f"{settings.ZHIPU_BASE_URL}/chat/completions"
         self.zhipu_key_index = 0
         self.zhipu_model_index = 0
-        self.zhipu_models = ["glm-4.5-flash", "glm-4.7-flash"]
+        self.zhipu_models = ["glm-4-flash", "glm-4-flashx"]
         self.openrouter_model_index = 0
         self.openrouter_models = [
-            "z-ai/glm-5.2:free",
-            "openai/gpt-oss-20b:free",
-            "nvidia/nemotron-nano-12b-2-vl:free",
-            "deepseek/deepseek-v4-flash",
-            "poolside/laguna-m.1:free"
+            "meta-llama/llama-3-8b-instruct:free",
+            "google/gemma-2-9b-it:free",
+            "mistralai/mistral-7b-instruct:free",
+            "qwen/qwen-2.5-7b-instruct:free"
         ]
 
     def _get_next_mistral_model(self) -> str:
@@ -88,10 +87,12 @@ class OpenRouterClient:
         """Helper to invoke a provider endpoint."""
         headers = {
             "Authorization": f"Bearer {api_key}",
-            "HTTP-Referer": settings.FRONTEND_URL,
-            "X-Title": "Zydrakon AI",
             "Content-Type": "application/json"
         }
+        if provider.lower() == "openrouter":
+            headers["HTTP-Referer"] = settings.FRONTEND_URL
+            headers["X-Title"] = "Zydrakon AI"
+
         payload = {
             "model": model,
             "messages": messages,
