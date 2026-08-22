@@ -19,15 +19,52 @@ class SearchService:
         text = text.replace("&quot;", '"').replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&#x27;", "'").replace("&#x2F;", "/")
         return text.strip()
 
+    def fetch_url(self, url: str) -> Optional[Dict[str, str]]:
+        """Directly fetches a target webpage and extracts main text content/meta tags."""
+        try:
+            if not url.startswith("http"):
+                url = "https://" + url
+            logger.info(f"Directly fetching webpage URL: {url}")
+            res = requests.get(url, headers=self.headers, timeout=6)
+            if res.status_code == 200:
+                html = res.text
+                title_match = re.search(r'<title[^>]*>(.*?)</title>', html, re.IGNORECASE | re.DOTALL)
+                title = self.clean_html(title_match.group(1)) if title_match else url
+                
+                desc_match = re.search(r'<meta[^>]*name=["\']description["\'][^>]*content=["\'](.*?)["\']', html, re.IGNORECASE)
+                desc = self.clean_html(desc_match.group(1)) if desc_match else ""
+                
+                body_text = self.clean_html(re.sub(r'<script[\s\S]*?</script>|<style[\s\S]*?</style>', '', html))
+                snippet = (desc + " " + body_text[:600]).strip()
+                
+                return {
+                    "title": f"[Direct Page] {title}",
+                    "url": url,
+                    "snippet": snippet[:500]
+                }
+        except Exception as e:
+            logger.warning(f"Direct URL fetch failed for {url}: {str(e)}")
+        return None
+
     def search(self, query: str, max_results: int = 5) -> List[Dict[str, str]]:
         """
-        Executes a static HTML DuckDuckGo search.
+        Executes a static HTML DuckDuckGo search and optional direct URL fetch.
         Returns a list of dicts with keys: 'title', 'url', 'snippet'.
         """
         if not query or query.strip() == "":
             return []
             
         logger.info(f"Performing web search for: '{query}'")
+        results = []
+
+        # Check if query contains an explicit URL
+        url_match = re.search(r'https?://[^\s]+|www\.[^\s]+', query)
+        if url_match:
+            target_url = url_match.group(0)
+            direct_page = self.fetch_url(target_url)
+            if direct_page:
+                results.append(direct_page)
+
         try:
             response = requests.post(
                 self.search_url, 

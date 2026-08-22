@@ -188,22 +188,27 @@ class OpenRouterClient:
         # Select the OpenRouter API key for this request cycle
         api_key = self._get_next_api_key()
 
-        # 2. Run web search if thinking mode is ON
+        # 2. Run web search if thinking mode is ON or if user query contains URL/search terms
         search_results_text = ""
         search_query_used = None
         search_results_list = None
-        if thinking:
+        
+        has_url_or_search = bool(re.search(r'https?://|www\.|founder|who is|what is the price|who created|who founded', message.lower()))
+        if thinking or has_url_or_search:
             search_query = self._generate_search_query(message, history)
-            if search_query and search_query != "NO_SEARCH":
-                search_query_used = search_query
-                results = search_service.search(search_query)
-                if results:
-                    search_results_list = results
-                    search_results_text = "\n\n--- WEB SEARCH RESULTS ---\n"
-                    search_results_text += f"Search query: {search_query}\n\n"
-                    for r in results:
-                        search_results_text += f"Title: {r['title']}\nURL: {r['url']}\nSnippet: {r['snippet']}\n\n"
-                    search_results_text += "---------------------------\n\n"
+            if not search_query or search_query == "NO_SEARCH":
+                # Fallback search query if query contains URL or search intent
+                search_query = message.strip()
+            
+            search_query_used = search_query
+            results = search_service.search(search_query)
+            if results:
+                search_results_list = results
+                search_results_text = "\n\n--- WEB SEARCH & LIVE PAGE RESULTS ---\n"
+                search_results_text += f"Search query: {search_query}\n\n"
+                for r in results:
+                    search_results_text += f"Title: {r['title']}\nURL: {r['url']}\nSnippet: {r['snippet']}\n\n"
+                search_results_text += "---------------------------------------\n\n"
 
         # 3. Assemble prompt payload
         system_instruction = (
@@ -219,9 +224,10 @@ class OpenRouterClient:
 
         if search_results_text:
             system_instruction += (
-                "\n\nYou have access to real-time search results to help answer the user's query. "
-                "Synthesize the information from the search results, citing sources (URLs) where appropriate. "
-                "Do not explicitly say that you searched the web unless necessary; just answer naturally using these facts: "
+                "\n\nYou have access to real-time search results and live page contents to help answer the user's query. "
+                "Synthesize the information from these results to directly answer the user's question (such as founder names, company details, or live facts) "
+                "and cite sources (URLs). NEVER state that you cannot browse the web or inspect URLs when search results are provided; "
+                "answer directly using these live facts: "
                 f"\n{search_results_text}"
             )
 
