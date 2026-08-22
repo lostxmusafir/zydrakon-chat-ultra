@@ -65,26 +65,29 @@ class NavigationService:
         destination = None
 
         # Pattern 1: "from <X> to <Y>" or "<X> se <Y>"
-        p1 = re.search(r'(?:from\s+)?(.+?)\s+(?:se|to)\s+(.+?)(?:\s+kaise|\s+jaana|\s+jana|\s+route|\s+reach|$)', user_message, re.IGNORECASE)
+        p1 = re.search(r'(?:from\s+)?(.+?)\s+(?:se|to|tak)\s+(.+?)(?:\s+kaise|\s+jaana|\s+jana|\s+route|\s+reach|$)', user_message, re.IGNORECASE)
         if p1:
             raw_orig = p1.group(1).strip()
             raw_dest = p1.group(2).strip()
             # Clean up common lead-in words
-            raw_orig = re.sub(r'^(mujhe|mujho|batao|tell me|show me|how to go|route|directions)\s+', '', raw_orig, flags=re.IGNORECASE)
+            raw_orig = re.sub(r'^(mujhe|muje|mujho|mujhko|batao|plz|please|tell me|show me|how to go|route|directions|from|start)\s+', '', raw_orig, flags=re.IGNORECASE).strip()
+            raw_dest = re.sub(r'^(to|reach|go|go to)\s+', '', raw_dest, flags=re.IGNORECASE).strip()
+            raw_dest = re.sub(r'\s+(jana hai|jaana hai|janna hai|kaise jau|kaise jaaen|reach|directions)$', '', raw_dest, flags=re.IGNORECASE).strip()
+            
             if len(raw_orig) >= 2 and len(raw_dest) >= 2:
                 origin = raw_orig
                 destination = raw_dest
 
         # Pattern 2: "mujhe <Y> jana hai" or "take me to <Y>" or "directions to <Y>"
         if not destination:
-            p2 = re.search(r'(?:take me to|directions to|route to|how to reach|how to go to|navigate to|mujhe)\s+(.+?)(?:\s+jana\s+hai|\s+jaana\s+hai|\s+pahunchna\s+hai|\s+reach|$)', user_message, re.IGNORECASE)
+            p2 = re.search(r'(?:take me to|directions to|route to|how to reach|how to go to|navigate to|mujhe|muje)\s+(.+?)(?:\s+jana\s+hai|\s+jaana\s+hai|\s+pahunchna\s+hai|\s+reach|$)', user_message, re.IGNORECASE)
             if p2:
                 destination = p2.group(1).strip()
 
         # Fallback: Clean up destination if still raw
         if not destination and is_route_query:
-            clean_text = re.sub(r'^(mujhe|batao|tell me|show me|route to|directions for|how to reach|how to go to|navigate to)\s+', '', user_message, flags=re.IGNORECASE)
-            clean_text = re.sub(r'\s+(jana hai|jaana hai|kaise jau|kaise jaaen|reach|directions)$', '', clean_text, flags=re.IGNORECASE)
+            clean_text = re.sub(r'^(mujhe|muje|mujho|mujhko|batao|plz|please|tell me|show me|route to|directions for|how to reach|how to go to|navigate to)\s+', '', user_message, flags=re.IGNORECASE)
+            clean_text = re.sub(r'\s+(jana hai|jaana hai|janna hai|kaise jau|kaise jaaen|reach|directions)$', '', clean_text, flags=re.IGNORECASE)
             if len(clean_text) >= 2:
                 destination = clean_text.strip()
 
@@ -93,8 +96,10 @@ class NavigationService:
 
         # Final sanitization
         destination = re.sub(r'^(to|reach|go|go to)\s+', '', destination, flags=re.IGNORECASE).strip()
+        destination = re.sub(r'\s+(jana hai|jaana hai|janna hai|kaise jau|kaise jaaen|reach|directions)$', '', destination, flags=re.IGNORECASE).strip()
+        
         if origin:
-            origin = re.sub(r'^(from|start|starting point)\s+', '', origin, flags=re.IGNORECASE).strip()
+            origin = re.sub(r'^(mujhe|muje|mujho|mujhko|batao|plz|please|from|start|starting point)\s+', '', origin, flags=re.IGNORECASE).strip()
 
         maps_url = self.build_maps_url(destination=destination, origin=origin, travel_mode="driving")
 
