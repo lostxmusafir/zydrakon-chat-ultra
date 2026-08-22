@@ -92,8 +92,9 @@ async def login(user_in: UserLogin):
         )
         
     # 3. Generate 60-minute JWT access token & 7-day refresh token
-    access_token = create_access_token(data={"sub": user["id"]})
-    refresh_token = create_refresh_token(data={"sub": user["id"]})
+    user_sub = user.get("id") or str(user["_id"])
+    access_token = create_access_token(data={"sub": user_sub, "email": user["email"]})
+    refresh_token = create_refresh_token(data={"sub": user_sub, "email": user["email"]})
     
     return AuthResponse(
         access_token=access_token,

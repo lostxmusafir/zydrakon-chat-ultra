@@ -91,7 +91,7 @@ class ApiClient {
         }
         
         throw new ApiError(
-          errorData.message || "Request failed",
+          errorData.message || (errorData as any).detail || `HTTP Error: ${response.status}`,
           response.status,
           errorData.code,
           errorData.details

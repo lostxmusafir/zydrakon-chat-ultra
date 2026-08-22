@@ -70,6 +70,14 @@ async def get_current_user(request: Request) -> dict:
                 user_id = payload["sub"]
                 db = get_db()
                 user = db.users.find_one({"id": user_id})
+                if not user:
+                    try:
+                        from bson import ObjectId
+                        user = db.users.find_one({"_id": ObjectId(user_id)})
+                    except Exception:
+                        pass
+                if not user and payload.get("email"):
+                    user = db.users.find_one({"email": payload["email"]})
                 if user:
                     return user
     except Exception as e:
