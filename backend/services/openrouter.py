@@ -34,7 +34,12 @@ class OpenRouterClient:
             "meta-llama/llama-3-8b-instruct:free",
             "google/gemma-2-9b-it:free",
             "mistralai/mistral-7b-instruct:free",
-            "qwen/qwen-2.5-7b-instruct:free"
+            "qwen/qwen-2.5-7b-instruct:free",
+            "z-ai/glm-5.2:free",
+            "openai/gpt-oss-20b:free",
+            "nvidia/nemotron-nano-12b-2-vl:free",
+            "deepseek/deepseek-v4-flash",
+            "poolside/laguna-m.1:free"
         ]
 
     def _get_next_mistral_model(self) -> str:
