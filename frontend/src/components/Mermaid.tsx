@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import mermaid from "mermaid";
-import { Code, Check, Copy, RefreshCw, Sun, Moon } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 
 interface MermaidProps {
   chart: string;
@@ -14,8 +14,6 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
   const [svg, setSvg] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
-  const [showRaw, setShowRaw] = useState<boolean>(false);
-  const [canvasTheme, setCanvasTheme] = useState<"grid" | "dark">("grid");
 
   useEffect(() => {
     try {
@@ -26,37 +24,37 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
         suppressErrorRendering: true,
         fontFamily: "var(--font-inter), system-ui, -apple-system, sans-serif",
         themeVariables: {
-          darkMode: false,
+          darkMode: true,
           background: "transparent",
           primaryColor: "#FFB74D",
-          primaryBorderColor: "#18181B",
-          primaryTextColor: "#111827",
-          secondaryColor: "#9397EC",
-          secondaryBorderColor: "#18181B",
-          secondaryTextColor: "#111827",
-          tertiaryColor: "#4DD0E1",
-          tertiaryBorderColor: "#18181B",
-          tertiaryTextColor: "#111827",
-          lineColor: "#18181B",
-          textColor: "#111827",
+          primaryBorderColor: "#F59E0B",
+          primaryTextColor: "#09090B",
+          secondaryColor: "#A5B4FC",
+          secondaryBorderColor: "#818CF8",
+          secondaryTextColor: "#09090B",
+          tertiaryColor: "#5EEAD4",
+          tertiaryBorderColor: "#14B8A6",
+          tertiaryTextColor: "#09090B",
+          lineColor: "#F1F5F9",
+          textColor: "#09090B",
           mainBkg: "transparent",
-          nodeBorder: "#18181B",
-          clusterBkg: "#F8FAFC",
-          clusterBorder: "#94A3B8",
-          edgeLabelBackground: "#FFFFFF",
+          nodeBorder: "#F59E0B",
+          clusterBkg: "rgba(255, 255, 255, 0.03)",
+          clusterBorder: "#52525B",
+          edgeLabelBackground: "#18181B",
           actorBkg: "#FFB74D",
-          actorBorder: "#18181B",
-          actorTextColor: "#111827",
-          actorLineColor: "#18181B",
-          signalColor: "#18181B",
-          signalTextColor: "#111827",
-          labelBoxBkgColor: "#FFFFFF",
-          labelBoxBorderColor: "#18181B",
-          labelTextColor: "#111827",
-          loopTextColor: "#111827",
+          actorBorder: "#F59E0B",
+          actorTextColor: "#09090B",
+          actorLineColor: "#F1F5F9",
+          signalColor: "#F1F5F9",
+          signalTextColor: "#F4F4F5",
+          labelBoxBkgColor: "#18181B",
+          labelBoxBorderColor: "#52525B",
+          labelTextColor: "#F4F4F5",
+          loopTextColor: "#F4F4F5",
           noteBkgColor: "#FEF08A",
-          noteBorderColor: "#18181B",
-          noteTextColor: "#111827",
+          noteBorderColor: "#EAB308",
+          noteTextColor: "#09090B",
           fontSize: "13px"
         }
       });
@@ -104,15 +102,15 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
       cleaned = cleaned.replace(/(\s+)->(\s+)/g, "$1-->$2");
     }
 
-    // 7. Inject Vibrant Pastel Palette classDefs if not already present
+    // 7. Inject Vibrant High-Contrast Pastel Palette classDefs if not already present
     if (!cleaned.includes("classDef cOrange") && /^\s*(graph|flowchart)/i.test(cleaned)) {
       const paletteClassDefs = `
-    classDef cOrange fill:#FFB74D,stroke:#18181B,stroke-width:2px,color:#111827,font-weight:600;
-    classDef cPurple fill:#9397EC,stroke:#18181B,stroke-width:2px,color:#111827,font-weight:600;
-    classDef cPink fill:#FF70C0,stroke:#18181B,stroke-width:2px,color:#111827,font-weight:600;
-    classDef cTeal fill:#4DD0E1,stroke:#18181B,stroke-width:2px,color:#111827,font-weight:600;
-    classDef cBlue fill:#4FC3F7,stroke:#18181B,stroke-width:2px,color:#111827,font-weight:600;
-    classDef cGreen fill:#6EE7B7,stroke:#18181B,stroke-width:2px,color:#111827,font-weight:600;
+    classDef cOrange fill:#FFB74D,stroke:#F59E0B,stroke-width:2px,color:#09090B,font-weight:700;
+    classDef cPurple fill:#A5B4FC,stroke:#818CF8,stroke-width:2px,color:#09090B,font-weight:700;
+    classDef cPink fill:#F472B6,stroke:#EC4899,stroke-width:2px,color:#09090B,font-weight:700;
+    classDef cTeal fill:#5EEAD4,stroke:#14B8A6,stroke-width:2px,color:#09090B,font-weight:700;
+    classDef cBlue fill:#7DD3FC,stroke:#0284C7,stroke-width:2px,color:#09090B,font-weight:700;
+    classDef cGreen fill:#86EFAC,stroke:#22C55E,stroke-width:2px,color:#09090B,font-weight:700;
       `;
 
       // Append classDefs after diagram header
@@ -166,9 +164,9 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
     const styleInjection = `<style>
       svg {
         font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        background: transparent !important;
       }
       .node rect, .node circle, .node ellipse, .node polygon, .node path {
-        stroke: #18181b !important;
         stroke-width: 2px !important;
         stroke-linecap: round !important;
         stroke-linejoin: round !important;
@@ -177,43 +175,44 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
       }
       .node .label, .node text, .actor text, .label text, text.actor {
         font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
-        fill: #111827 !important;
-        color: #111827 !important;
+        fill: #09090b !important;
+        color: #09090b !important;
         font-size: 13px !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
       }
+      /* Lines & arrows: bright off-white so they contrast against the dark background */
       .edgePath .path, .edgePath path {
-        stroke: #18181b !important;
+        stroke: #f1f5f9 !important;
         stroke-width: 2px !important;
         stroke-linecap: round !important;
       }
       .edgePath marker path, marker[id*="arrow"] path, marker[id*="flowchart-point"] path {
-        fill: #18181b !important;
-        stroke: #18181b !important;
+        fill: #f1f5f9 !important;
+        stroke: #f1f5f9 !important;
       }
       .cluster rect {
-        fill: #f8fafc !important;
-        stroke: #94a3b8 !important;
+        fill: rgba(255, 255, 255, 0.03) !important;
+        stroke: #52525b !important;
         stroke-width: 1.5px !important;
         stroke-dasharray: 4,4 !important;
         rx: 12px !important;
       }
       .cluster text, .cluster .label {
-        fill: #334155 !important;
+        fill: #e4e4e7 !important;
         font-weight: 700 !important;
         font-size: 12px !important;
         letter-spacing: 0.04em !important;
       }
       .edgeLabel rect {
-        fill: #ffffff !important;
-        stroke: #18181b !important;
+        fill: #18181b !important;
+        stroke: #52525b !important;
         stroke-width: 1px !important;
         rx: 4px !important;
       }
       .edgeLabel text, .edgeLabel span {
-        fill: #111827 !important;
-        color: #111827 !important;
-        font-size: 11.5px !important;
+        fill: #f4f4f5 !important;
+        color: #f4f4f5 !important;
+        font-size: 11px !important;
         font-weight: 700 !important;
       }
     </style>`;
@@ -322,9 +321,9 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
     // Keep visual flowchart compact (maximum 7 key stages to prevent endless vertical towers)
     const displayNodes = nodes.slice(0, 7);
 
-    const nodeWidth = 400;
-    const gap = 36;
-    const totalWidth = 460;
+    const nodeWidth = 380;
+    const gap = 32;
+    const totalWidth = 440;
     const centerX = totalWidth / 2;
 
     const escapeXml = (unsafe: string): string => {
@@ -336,33 +335,33 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
         .replace(/'/g, "&apos;");
     };
 
-    // Color palette from user's image
+    // Color palette with high contrast against dark background
     const palette = [
-      { bg: "#FFB74D", border: "#18181B" }, // Orange (Brainstorming)
-      { bg: "#9397EC", border: "#18181B" }, // Purple (Trends / Research)
-      { bg: "#FF70C0", border: "#18181B" }, // Pink (Prototyping / Diamond)
-      { bg: "#4DD0E1", border: "#18181B" }, // Teal (Design / Implementation)
-      { bg: "#4FC3F7", border: "#18181B" }, // Sky Blue (Review / Refinement)
-      { bg: "#6EE7B7", border: "#18181B" }  // Mint Green
+      { bg: "#FFB74D", border: "#F59E0B" }, // Orange (Brainstorming)
+      { bg: "#A5B4FC", border: "#818CF8" }, // Purple (Trends / Research)
+      { bg: "#F472B6", border: "#EC4899" }, // Pink (Prototyping / Diamond)
+      { bg: "#5EEAD4", border: "#14B8A6" }, // Teal (Design / Implementation)
+      { bg: "#7DD3FC", border: "#0284C7" }, // Sky Blue (Review / Refinement)
+      { bg: "#86EFAC", border: "#22C55E" }  // Mint Green
     ];
 
-    const nodeHeights = displayNodes.map((n) => Math.max(56, 36 + (n.details.length > 0 ? n.details.length * 20 : 0)));
+    const nodeHeights = displayNodes.map((n) => Math.max(54, 34 + (n.details.length > 0 ? n.details.length * 18 : 0)));
     let totalHeight = 40;
     nodeHeights.forEach((h) => {
       totalHeight += h + gap;
     });
 
-    let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="100%" style="max-width: 540px; font-family: var(--font-inter), system-ui, -apple-system, sans-serif; display: block; margin: 0 auto;">
+    let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="100%" style="max-width: 520px; font-family: var(--font-inter), system-ui, -apple-system, sans-serif; display: block; margin: 0 auto; background: transparent;">
       <defs>
         <marker id="sharpArrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 1 L 8 5 L 0 9 z" fill="#18181B"/>
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="#F1F5F9"/>
         </marker>
-        <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
-          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.1"/>
+        <filter id="softGlow" x="-10%" y="-10%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.3"/>
         </filter>
       </defs>`;
 
-    let currentY = 24;
+    let currentY = 20;
 
     displayNodes.forEach((node, idx) => {
       const h = nodeHeights[idx];
@@ -376,27 +375,27 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
         const prevH = nodeHeights[idx - 1];
         const prevY = currentY - gap;
         svgContent += `
-          <line x1="${centerX}" y1="${prevY}" x2="${centerX}" y2="${y - 4}" stroke="#18181B" stroke-width="2" marker-end="url(#sharpArrow)"/>
+          <line x1="${centerX}" y1="${prevY}" x2="${centerX}" y2="${y - 4}" stroke="#F1F5F9" stroke-width="2" marker-end="url(#sharpArrow)"/>
         `;
       }
 
-      const badgeY = y + 26;
+      const badgeY = y + 25;
 
       let detailTexts = "";
       if (node.details.length > 0) {
         node.details.forEach((det, dIdx) => {
-          detailTexts += `<text x="${x + 48}" y="${y + 44 + dIdx * 19}" font-size="11.5" font-weight="600" fill="#18181B">${escapeXml(det)}</text>`;
+          detailTexts += `<text x="${x + 46}" y="${y + 42 + dIdx * 18}" font-size="11" font-weight="600" fill="#09090B">${escapeXml(det)}</text>`;
         });
       }
 
-      const titleY = node.details.length > 0 ? y + 23 : y + h / 2 + 5;
+      const titleY = node.details.length > 0 ? y + 22 : y + h / 2 + 5;
 
       svgContent += `
-        <g filter="url(#softShadow)">
+        <g filter="url(#softGlow)">
           <rect x="${x}" y="${y}" width="${nodeWidth}" height="${h}" rx="8" fill="${col.bg}" stroke="${col.border}" stroke-width="2"/>
-          <circle cx="${x + 24}" cy="${badgeY}" r="11" fill="#18181B" opacity="0.12"/>
-          <text x="${x + 24}" y="${badgeY + 4}" font-size="11" font-weight="700" fill="#18181B" text-anchor="middle">${idx + 1}</text>
-          <text x="${x + 46}" y="${titleY}" font-size="13" font-weight="700" fill="#111827">${escapeXml(node.title)}</text>
+          <circle cx="${x + 22}" cy="${badgeY}" r="11" fill="#000000" opacity="0.14"/>
+          <text x="${x + 22}" y="${badgeY + 4}" font-size="11" font-weight="700" fill="#09090B" text-anchor="middle">${idx + 1}</text>
+          <text x="${x + 44}" y="${titleY}" font-size="13" font-weight="700" fill="#09090B">${escapeXml(node.title)}</text>
           ${detailTexts}
         </g>
       `;
@@ -456,7 +455,7 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
       isMounted = false;
       clearTimeout(renderTimer);
     };
-  }, [chart, isDarkMode, canvasTheme]);
+  }, [chart, isDarkMode]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(chart);
@@ -467,63 +466,28 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
   return (
     <div
       ref={ref}
-      className={`my-5 rounded-2xl border shadow-xl overflow-x-auto scrollbar-thin select-none max-w-full relative group transition-colors ${
-        canvasTheme === "grid"
-          ? "border-zinc-300/80 bg-[#FAFAFA] [background-image:radial-gradient(#CBD5E1_1.5px,transparent_1.5px)] [background-size:20px_20px]"
-          : "border-zinc-800/80 bg-[#18181B]/95 [background-image:radial-gradient(rgba(255,255,255,0.08)_1.5px,transparent_1.5px)] [background-size:20px_20px]"
-      } p-4`}
+      className="my-5 bg-transparent overflow-x-auto scrollbar-thin select-none max-w-full relative group"
     >
-      <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-zinc-300/60 dark:border-zinc-800/60 text-xs font-medium select-none">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#FFB74D] inline-block" />
-            <span className="w-2.5 h-2.5 rounded-full bg-[#9397EC] inline-block" />
-            <span className="w-2.5 h-2.5 rounded-full bg-[#FF70C0] inline-block" />
-            <span className="w-2.5 h-2.5 rounded-full bg-[#4DD0E1] inline-block" />
-          </div>
-          <span className={`text-[11px] font-bold uppercase tracking-wider ${canvasTheme === "grid" ? "text-zinc-800" : "text-zinc-200"}`}>
-            Flowchart
-          </span>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setCanvasTheme(canvasTheme === "grid" ? "dark" : "grid")}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${
-              canvasTheme === "grid"
-                ? "bg-white/80 hover:bg-white text-zinc-700 border-zinc-300 shadow-sm"
-                : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700"
-            }`}
-            title="Toggle Canvas Theme"
-          >
-            {canvasTheme === "grid" ? <Moon className="w-3 h-3 text-zinc-600" /> : <Sun className="w-3 h-3 text-amber-400" />}
-            <span>{canvasTheme === "grid" ? "Dark Mode" : "Dot Grid"}</span>
-          </button>
-
-          <button
-            onClick={handleCopy}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${
-              canvasTheme === "grid"
-                ? "bg-white/80 hover:bg-white text-zinc-700 border-zinc-300 shadow-sm"
-                : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700"
-            }`}
-            title="Copy Mermaid Code"
-          >
-            {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-            <span>{copied ? "Copied" : "Copy"}</span>
-          </button>
-        </div>
+      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 z-10 bg-zinc-900/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-zinc-800">
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-white transition-colors cursor-pointer"
+          title="Copy Mermaid Code"
+        >
+          {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+          <span>{copied ? "Copied" : "Copy"}</span>
+        </button>
       </div>
 
       {svg ? (
         <div
-          className="select-none [&>svg]:mx-auto [&>svg]:block [&>svg]:max-w-full [&>svg]:h-auto py-3"
+          className="select-none [&>svg]:mx-auto [&>svg]:block [&>svg]:max-w-full [&>svg]:h-auto py-2"
           dangerouslySetInnerHTML={{ __html: svg }}
         />
       ) : (
-        <div className="text-xs text-zinc-500 animate-pulse font-mono py-8 text-center flex items-center justify-center gap-2">
+        <div className="text-xs text-zinc-500 animate-pulse font-mono py-6 text-center flex items-center justify-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full bg-[#FF70C0] animate-ping" />
-          <span>Rendering colorful flowchart...</span>
+          <span>Rendering flowchart...</span>
         </div>
       )}
     </div>
