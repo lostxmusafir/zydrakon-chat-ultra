@@ -1,6 +1,6 @@
 import uuid
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel, EmailStr, Field
@@ -108,26 +108,58 @@ async def create_user(user_in: AdminUserCreate, admin: dict = Depends(get_curren
 
 @router.get("/logs", response_model=List[AdminLogResponse])
 async def list_logs(admin: dict = Depends(get_current_admin)):
-    """Retrieve chat/search queries made by users, showing user name and query."""
+    """Retrieve chat/search queries made by users, showing user name and query.
+    Enforces a strict 24-hour retention window for all users: logs older than 24h
+    are automatically deleted, and only logs from the last 24 hours are returned.
+    """
     db = get_db()
     
-    # 1. Fetch user role messages, sorted by timestamp descending, limit to last 100
-    messages = list(db.messages.find({"role": "user"}).sort("timestamp", -1).limit(100))
+    # 24-hour cutoff threshold
+    cutoff = datetime.utcnow() - timedelta(hours=24)
+    cutoff_iso = cutoff.isoformat()
+    
+    # 1. Automatic active purge: delete any user messages & sessions older than 24 hours
+    try:
+        db.messages.delete_many({
+            "$or": [
+                {"timestamp": {"$lt": cutoff}},
+                {"timestamp": {"$lt": cutoff_iso}}
+            ]
+        })
+        db.sessions.delete_many({
+            "$or": [
+                {"created_at": {"$lt": cutoff}},
+                {"created_at": {"$lt": cutoff_iso}}
+            ]
+        })
+    except Exception as purge_err:
+        logger.warning(f"Error during 24-hour log auto-purge: {str(purge_err)}")
+        
+    # 2. Fetch user queries within the last 24 hours, sorted by timestamp descending
+    messages = list(
+        db.messages.find({
+            "role": "user",
+            "$or": [
+                {"timestamp": {"$gte": cutoff}},
+                {"timestamp": {"$gte": cutoff_iso}}
+            ]
+        }).sort("timestamp", -1).limit(500)
+    )
     if not messages:
         return []
         
-    # 2. Extract unique session IDs to batch fetch sessions
-    session_ids = list(set(msg["session_id"] for msg in messages))
+    # 3. Extract unique session IDs to batch fetch sessions
+    session_ids = list(set(msg["session_id"] for msg in messages if "session_id" in msg))
     sessions = {s["id"]: s for s in db.sessions.find({"id": {"$in": session_ids}})}
     
-    # 3. Extract unique user IDs to batch fetch users
-    user_ids = list(set(s["user_id"] for s in sessions.values() if s))
+    # 4. Extract unique user IDs to batch fetch users
+    user_ids = list(set(s["user_id"] for s in sessions.values() if s and "user_id" in s))
     users = {u["id"]: u for u in db.users.find({"id": {"$in": user_ids}})}
     
-    # 4. Map queries to users
+    # 5. Map queries to users
     logs = []
     for msg in messages:
-        session = sessions.get(msg["session_id"])
+        session = sessions.get(msg.get("session_id"))
         user_id = session.get("user_id") if session else "guest-user"
         user = users.get(user_id)
         
@@ -144,14 +176,14 @@ async def list_logs(admin: dict = Depends(get_current_admin)):
                 
         # Format timestamp
         ts = msg.get("timestamp")
-        ts_str = ts.isoformat() if isinstance(ts, datetime) else str(ts)
+        ts_str = ts.isoformat() + "Z" if isinstance(ts, datetime) else str(ts)
         
         logs.append(AdminLogResponse(
             user_name=user_name,
             user_email=user_email,
-            query=msg["content"],
+            query=msg.get("content", ""),
             timestamp=ts_str,
-            session_id=msg["session_id"],
+            session_id=msg.get("session_id", ""),
             model_used=msg.get("model_used", "unknown")
         ))
         

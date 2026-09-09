@@ -420,7 +420,7 @@ export default function AdminDashboard() {
               <Search className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs text-zinc-500 font-mono">SEARCH LOGS</p>
+              <p className="text-xs text-zinc-500 font-mono">SEARCH LOGS (24H)</p>
               <p className="text-2xl font-black text-white">{logsList.length}</p>
             </div>
           </div>
@@ -709,9 +709,9 @@ export default function AdminDashboard() {
           <div className="bg-zinc-900/30 border border-zinc-800/80 rounded-3xl backdrop-blur-sm overflow-hidden flex flex-col">
             <div className="p-6 border-b border-zinc-800/60">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Search className="text-orange-500 w-5 h-5" /> Recent Search / Chat Logs
+                <Search className="text-orange-500 w-5 h-5" /> Search & Query Logs (24h Window)
               </h2>
-              <p className="text-zinc-500 text-xs mt-1">Real-time log of query inputs entered by clients (Expires hourly).</p>
+              <p className="text-zinc-500 text-xs mt-1">Real-time log of queries entered by all users (Retained for 24 hours, automatically purged thereafter).</p>
             </div>
 
             <div className="overflow-x-auto">
@@ -729,7 +729,7 @@ export default function AdminDashboard() {
                   {logsList.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="py-12 text-center text-zinc-500 font-mono">
-                        No activity logs recorded. Perform a chat search to generate log history.
+                        No activity logs recorded in the last 24 hours.
                       </td>
                     </tr>
                   ) : (
@@ -747,8 +747,9 @@ export default function AdminDashboard() {
                             {log.model_used || "unknown"}
                           </span>
                         </td>
-                        <td className="py-4 px-6 text-zinc-500 font-mono shrink-0">
-                          {new Date(log.timestamp).toLocaleTimeString()}
+                        <td className="py-4 px-6 text-zinc-400 font-mono shrink-0 text-xs">
+                          <div>{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+                          <div className="text-[10px] text-zinc-500">{new Date(log.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}</div>
                         </td>
                       </tr>
                     ))
