@@ -54,6 +54,7 @@ import { LoginPage } from "@/components/LoginPage";
 import { ChangePasswordModal } from "@/components/ChangePasswordModal";
 import { WorkspacesModal } from "@/components/WorkspacesModal";
 import { RouteCard } from "@/components/RouteCard";
+import { TierWelcomeModal } from "@/components/TierWelcomeModal";
 
 const FREE_MODELS = [
   { id: "zydrakon-free", name: "Zydrakon AI (Free)" },
@@ -251,6 +252,25 @@ export default function Home() {
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(false);
   const [showFullLoginPage, setShowFullLoginPage] = useState(true);
 
+  // 1-Time First Login Tier Welcome Modal States
+  const [showTierWelcomeModal, setShowTierWelcomeModal] = useState(false);
+  const [tierWelcomeUser, setTierWelcomeUser] = useState<any>(null);
+
+  const checkAndTriggerTierWelcome = (user: any) => {
+    if (!user) return;
+    const userKey = user.id || user.email;
+    if (!userKey) return;
+    try {
+      const alreadySeen = localStorage.getItem(`zydrakon_tier_welcome_${userKey}`);
+      if (!alreadySeen) {
+        setTierWelcomeUser(user);
+        setShowTierWelcomeModal(true);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   // Agents states
   const [selectedAgentId, setSelectedAgentId] = useState<string>("general-assistant");
   const [showAgentsPanel, setShowAgentsPanel] = useState(false);
@@ -318,7 +338,9 @@ export default function Home() {
       setIsAuthenticated(true);
       if (storedUser) {
         try {
-          setCurrentUser(JSON.parse(storedUser));
+          const parsedUser = JSON.parse(storedUser);
+          setCurrentUser(parsedUser);
+          checkAndTriggerTierWelcome(parsedUser);
         } catch (e) {
           console.error(e);
         }
@@ -796,6 +818,7 @@ function formatMarkdownInline(text: string): React.ReactNode {
           setCurrentUser(user);
           setShowFullLoginPage(false);
           loadSessions();
+          checkAndTriggerTierWelcome(user);
         }}
         onContinueGuest={() => setShowFullLoginPage(false)}
       />
@@ -1457,6 +1480,8 @@ function formatMarkdownInline(text: string): React.ReactNode {
         onLoginSuccess={(user) => {
           setIsAuthenticated(true);
           setCurrentUser(user);
+          setShowLoginModal(false);
+          checkAndTriggerTierWelcome(user);
         }}
       />
 
@@ -1478,6 +1503,13 @@ function formatMarkdownInline(text: string): React.ReactNode {
           }
         }}
         currentUser={currentUser}
+      />
+
+      {/* 1-Time First Login Tier Welcome Modal */}
+      <TierWelcomeModal
+        isOpen={showTierWelcomeModal}
+        user={tierWelcomeUser}
+        onClose={() => setShowTierWelcomeModal(false)}
       />
     </div>
   );
