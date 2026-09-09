@@ -70,18 +70,28 @@ def decrypt_password(cipher_text: str) -> str:
             return ""
     return ""
 
-def create_access_token(data: dict) -> str:
-    """Create a JWT Access Token with a 60-minute expiry."""
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """Create a JWT Access Token. Grants 30 days for admin roles, or config default."""
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    elif data.get("role") == "admin" or data.get("email") == "admin@zydrakon.ai":
+        expire = datetime.utcnow() + timedelta(days=30)
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire, "type": "access"})
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm="HS256")
     return encoded_jwt
 
-def create_refresh_token(data: dict) -> str:
-    """Create a JWT Refresh Token with a 7-day expiry."""
+def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """Create a JWT Refresh Token. Grants 60 days for admin roles, or config default."""
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    elif data.get("role") == "admin" or data.get("email") == "admin@zydrakon.ai":
+        expire = datetime.utcnow() + timedelta(days=60)
+    else:
+        expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire, "type": "refresh"})
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm="HS256")
     return encoded_jwt
@@ -111,30 +121,38 @@ def verify_refresh_token(token: str) -> Optional[dict]:
 from fastapi import Request
 
 async def get_current_user(request: Request) -> dict:
-    """Dependency to extract user from the JWT, with automatic Guest fallback."""
-    try:
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header.split(" ")[1]
-            payload = verify_access_token(token)
-            if payload and "sub" in payload:
-                user_id = payload["sub"]
-                db = get_db()
-                user = db.users.find_one({"id": user_id})
-                if not user:
-                    try:
-                        from bson import ObjectId
-                        user = db.users.find_one({"_id": ObjectId(user_id)})
-                    except Exception:
-                        pass
-                if not user and payload.get("email"):
-                    user = db.users.find_one({"email": payload["email"]})
-                if user:
-                    return user
-    except Exception as e:
-        logger.warning(f"Auth header extraction fallback: {str(e)}")
+    """Dependency to extract user from the JWT, with automatic Guest fallback.
+    If a Bearer token was provided but has expired or is invalid, raises 401 so the client can refresh."""
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1].strip()
+        payload = verify_access_token(token)
+        if not payload:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has expired or is invalid. Please log in again.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        user_id = payload.get("sub")
+        db = get_db()
+        user = db.users.find_one({"id": user_id})
+        if not user:
+            try:
+                from bson import ObjectId
+                user = db.users.find_one({"_id": ObjectId(user_id)})
+            except Exception:
+                pass
+        if not user and payload.get("email"):
+            user = db.users.find_one({"email": payload["email"]})
+        if user:
+            return user
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account not found for credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
-    # Guest user fallback
+    # Guest user fallback for endpoints called without any Bearer header
     return {
         "id": "guest-user",
         "email": "guest@zydrakon.ai",

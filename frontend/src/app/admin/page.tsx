@@ -89,6 +89,18 @@ export default function AdminDashboard() {
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Ensure scrolling works properly on admin panel even if html/body has overflow: hidden
+    const origHtmlOverflow = document.documentElement.style.overflow;
+    const origBodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = "auto";
+    document.body.style.overflow = "auto";
+    return () => {
+      document.documentElement.style.overflow = origHtmlOverflow;
+      document.body.style.overflow = origBodyOverflow;
+    };
+  }, []);
+
+  useEffect(() => {
     // 1. Check local credentials
     const token = localStorage.getItem("zydrakon_token");
     const storedUser = localStorage.getItem("zydrakon_user");
@@ -158,7 +170,18 @@ export default function AdminDashboard() {
       setUsersList(users);
       setLogsList(logs);
     } catch (err: any) {
-      setError(err?.message || "Failed to fetch admin data");
+      const msg = err?.message || "Failed to fetch admin data";
+      setError(msg);
+      // If token expired, unauthorized or privileges lost, prompt to sign in again
+      if (
+        err?.status === 401 ||
+        msg.toLowerCase().includes("token") ||
+        msg.toLowerCase().includes("unauthorized") ||
+        msg.toLowerCase().includes("privilege required")
+      ) {
+        setShowLoginForm(true);
+        setIsAdmin(false);
+      }
     } finally {
       setLoading(false);
     }
@@ -209,11 +232,11 @@ export default function AdminDashboard() {
   // 1. Show Admin Login Page if requested/not logged in
   if (showLoginForm) {
     return (
-      <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center p-6 relative overflow-hidden select-none">
+      <div className="h-screen w-full bg-[#09090b] text-white flex items-center justify-center p-6 relative overflow-y-auto scrollbar-thin select-none">
         {/* Ambient Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-orange-600/10 blur-[130px] rounded-full pointer-events-none" />
 
-        <div className="max-w-md w-full bg-zinc-950 border border-zinc-800 p-8 rounded-3xl backdrop-blur-md relative z-10 space-y-6">
+        <div className="max-w-md w-full bg-zinc-950 border border-zinc-800 p-8 rounded-3xl backdrop-blur-md relative z-10 space-y-6 my-auto">
           <div className="text-center space-y-2">
             <div className="w-16 h-16 bg-orange-950/20 border border-orange-500/30 text-orange-500 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-orange-950/30">
               <Shield className="w-8 h-8" />
@@ -286,11 +309,11 @@ export default function AdminDashboard() {
   // 2. Show Access Denied if logged in but NOT admin
   if (isAdmin === false) {
     return (
-      <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center p-6 relative overflow-hidden">
+      <div className="h-screen w-full bg-[#09090b] text-white flex items-center justify-center p-6 relative overflow-y-auto scrollbar-thin">
         {/* Ambient Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-red-950/10 blur-[130px] rounded-full pointer-events-none" />
 
-        <div className="max-w-md w-full text-center space-y-6 bg-zinc-950 border border-zinc-800 p-8 rounded-3xl backdrop-blur-md relative z-10">
+        <div className="max-w-md w-full text-center space-y-6 bg-zinc-950 border border-zinc-800 p-8 rounded-3xl backdrop-blur-md relative z-10 my-auto">
           <div className="w-16 h-16 bg-red-950/20 border border-red-500/30 text-red-500 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-red-950/30">
             <Shield className="w-8 h-8" />
           </div>
@@ -331,8 +354,8 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#030712] text-gray-200 p-4 md:p-8 font-sans">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="h-screen w-full bg-[#030712] text-gray-200 p-4 md:p-8 font-sans overflow-y-auto scrollbar-thin">
+      <div className="max-w-7xl mx-auto space-y-8 pb-24">
         
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-zinc-800/80">

@@ -93,28 +93,29 @@ async def login(user_in: UserLogin):
             headers={"WWW-Authenticate": "Bearer"},
         )
         
-    # 3. Generate 60-minute JWT access token & 7-day refresh token
+    # 3. Generate 30-day JWT access token (for admin) or 24-hr token & refresh token
     user_sub = user.get("id") or str(user["_id"])
-    access_token = create_access_token(data={"sub": user_sub, "email": user["email"]})
-    refresh_token = create_refresh_token(data={"sub": user_sub, "email": user["email"]})
+    user_role = user.get("role", "admin" if user["email"] == "admin@zydrakon.ai" else "user")
+    access_token = create_access_token(data={"sub": user_sub, "email": user["email"], "role": user_role})
+    refresh_token = create_refresh_token(data={"sub": user_sub, "email": user["email"], "role": user_role})
     
     return AuthResponse(
         access_token=access_token,
         refresh_token=refresh_token,
         token_type="bearer",
         user=User(
-            id=user["id"],
+            id=user_sub,
             email=user["email"],
             name=user.get("name"),
             tier=user.get("tier", "free"),
-            role=user.get("role", "admin" if user["email"] == "admin@zydrakon.ai" else "user"),
+            role=user_role,
             allowed_models=user.get("allowed_models")
         )
     )
 
 @router.post("/refresh", response_model=RefreshResponse)
 async def refresh_tokens(req: RefreshRequest):
-    """Refreshes a 60-minute access token using a valid 7-day refresh token."""
+    """Refreshes an access token using a valid refresh token."""
     payload = verify_refresh_token(req.refresh_token)
     if not payload or not payload.get("sub"):
         raise HTTPException(
@@ -127,13 +128,22 @@ async def refresh_tokens(req: RefreshRequest):
     db = get_db()
     user = db.users.find_one({"id": user_id})
     if not user:
+        try:
+            from bson import ObjectId
+            user = db.users.find_one({"_id": ObjectId(user_id)})
+        except Exception:
+            pass
+    if not user and payload.get("email"):
+        user = db.users.find_one({"email": payload["email"]})
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User account not found. Please sign in again.",
         )
 
-    new_access_token = create_access_token(data={"sub": user_id})
-    new_refresh_token = create_refresh_token(data={"sub": user_id})
+    user_role = user.get("role", "admin" if user.get("email") == "admin@zydrakon.ai" else "user")
+    new_access_token = create_access_token(data={"sub": user_id, "email": user["email"], "role": user_role})
+    new_refresh_token = create_refresh_token(data={"sub": user_id, "email": user["email"], "role": user_role})
 
     return RefreshResponse(
         access_token=new_access_token,
