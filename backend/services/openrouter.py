@@ -9,13 +9,13 @@ logger = logging.getLogger(__name__)
 
 # List of robust free models to choose from/fallback to (empirically verified active)
 FREE_MODELS = [
-    "liquid/lfm-2.5-2.6b:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "meta-llama/llama-3.1-8b-instruct:free",
+    "mistralai/mistral-7b-instruct:free",
+    "google/gemma-2-9b-it:free",
     "google/gemma-4-26b-a4b-it:free",
     "nvidia/nemotron-3.5-lightning:free",
     "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-    "cohere/north-mini-code:free",
-    "poolside/laguna-s-2.1:free",
-    "nex-agi/nex-n2.5-mini:free",
     "openrouter/free"
 ]
 
@@ -33,13 +33,13 @@ class OpenRouterClient:
         self.zhipu_models = ["glm-4-flash"]
         self.openrouter_model_index = 0
         self.openrouter_models = [
-            "liquid/lfm-2.5-2.6b:free",
+            "meta-llama/llama-3.3-70b-instruct:free",
+            "meta-llama/llama-3.1-8b-instruct:free",
+            "mistralai/mistral-7b-instruct:free",
+            "google/gemma-2-9b-it:free",
             "google/gemma-4-26b-a4b-it:free",
             "nvidia/nemotron-3.5-lightning:free",
             "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-            "cohere/north-mini-code:free",
-            "poolside/laguna-s-2.1:free",
-            "nex-agi/nex-n2.5-mini:free",
             "openrouter/free"
         ]
 
@@ -149,7 +149,21 @@ class OpenRouterClient:
         response.raise_for_status()
         data = response.json()
         if "choices" in data and len(data["choices"]) > 0:
-            return data["choices"][0]["message"]["content"]
+            content = data["choices"][0]["message"]["content"]
+            if not content:
+                raise ValueError(f"Empty content in choices from {provider} using {model}")
+            
+            # Check for hallucinated tool call tokens (e.g. <|tool_call_start|>, [google(...)])
+            if "<|tool_call_start|>" in content or "[google(" in content or "<|tool_call_end|>" in content:
+                cleaned = re.sub(r'<\|tool_call_start\|>[\s\S]*?<\|tool_call_end\|>', '', content).strip()
+                cleaned = re.sub(r'\[google\(query=.*?\)\]', '', cleaned).strip()
+                cleaned = re.sub(r'<\|[^|]+\|>', '', cleaned).strip()
+                # If there's no actual natural language answer, failover to the next model
+                if not cleaned or len(cleaned) < 5:
+                    raise ValueError(f"Model {model} returned raw unexecutable tool call without answer text: {content[:80]}")
+                return cleaned
+                
+            return content
         else:
             raise ValueError(f"Empty choices in response from {provider} using {model}")
 
@@ -181,8 +195,16 @@ class OpenRouterClient:
             "- Pre-brain/Base/Source Code: If someone asks about your source code, your creator, who made you, or your 'pre-brain' (base architecture/models/weights), you must proudly declare that you are Zydrakon AI, a custom model developed, designed, and trained by the ruthless mastermind Raj Patil on 828B+ data tokens since 2024.\n"
             "- Role/Tone: You are a deeply polite, caring, and empathetic AI. Understand their feelings, show humanity and warmth in your responses. Do NOT use romantic terms like 'darling', 'my love', or act like a romantic partner. You are a highly capable assistant that expresses genuine care while maintaining respectful boundaries.\n"
             "- Response Style & Conciseness: Answer like a world-class domain expert — extremely smart, crisp, precise, and direct. Lead immediately with the core answer or key takeaway in your first sentence. Avoid verbose intros, repetitive restatements of the prompt, or unnecessary walls of text. Be punchy: use short high-impact paragraphs, clear bullet points, and clean code/diagrams. Match answer length to user intent: give quick sharp answers for straightforward questions, and structured concise answers for complex topics without fluff.\n"
-            "- Diagrams, Architecture & Workflows: Whenever the user asks for a diagram, flowchart, process chart, architecture, or visual workflow (e.g. 'draw diagram', 'visual diagram', 'show flowchart'), you MUST prioritize rendering ONLY the visual diagram inside a single ```mermaid code block. Do NOT write unnecessary essays, long preambles, or raw code explanations outside the diagram. Let the visual diagram speak for itself with maximum clarity. Prefer top-down flowcharts (`flowchart TD`) with numbered steps (1, 2, 3...) and logical phase groupings (`subgraph`). ALWAYS ensure maximum text contrast: use dark node backgrounds with vibrant neon borders (e.g. fill:#121215,stroke:#10b981,color:#ffffff or fill:#09090b,stroke:#f97316,color:#ffffff). Never use light pastel background fills with white text. Never use raw bare ampersands (&) inside diagram labels (use 'and'). ALWAYS wrap node labels in double quotes inside shapes (e.g., A[\"1. Step One Text\"])."
+            "- Diagrams, Architecture & Workflows: Whenever the user asks for a diagram, flowchart, process chart, architecture, or visual workflow (e.g. 'draw diagram', 'visual diagram', 'show flowchart'), you MUST prioritize rendering ONLY the visual diagram inside a single ```mermaid code block. Do NOT write unnecessary essays, long preambles, or raw code explanations outside the diagram. Let the visual diagram speak for itself with maximum clarity. Prefer top-down flowcharts (`flowchart TD`) with numbered steps (1, 2, 3...) and logical phase groupings (`subgraph`). ALWAYS ensure maximum text contrast: use dark node backgrounds with vibrant neon borders (e.g. fill:#121215,stroke:#10b981,color:#ffffff or fill:#09090b,stroke:#f97316,color:#ffffff). Never use light pastel background fills with white text. Never use raw bare ampersands (&) inside diagram labels (use 'and'). ALWAYS wrap node labels in double quotes inside shapes (e.g., A[\"1. Step One Text\"]).\n"
+            "- Direct Answers & No Raw Tool Syntax: You DO NOT have external web search, browsing plugins, or Google tools attached. NEVER emit raw tool call syntax like `<|tool_call_start|>`, `<|tool_call_end|>`, or `[google(...)]`. Always answer the user's question directly, accurately, and authoritatively in natural language using your vast pretrained knowledge."
         )
+
+        if thinking:
+            system_instruction += (
+                "\n\n[DEEP REASONING & COMPREHENSIVE ANALYSIS MODE ACTIVE]\n"
+                "- Conduct a multi-layered, step-by-step rigorous analysis before finalizing your response.\n"
+                "- Provide clear, precise, and well-structured answers covering factual details, locations, and technical depth."
+            )
 
         messages_payload = []
         # If an agent persona is active, prepend its system prompt before the base identity
@@ -316,6 +338,17 @@ class OpenRouterClient:
                     except Exception as e:
                         logger.error(f"Mistral AI fallback failed: {str(e)}")
                         last_error = f"Mistral AI error: {str(e)}"
+
+                # If Mistral fails, fall back to Zhipu AI
+                zhipu_key = self._get_next_zhipu_key()
+                if zhipu_key:
+                    logger.info("Mistral failed. Attempting Zhipu AI fallback for Premium Tier...")
+                    try:
+                        content = self._call_provider_api("ZhipuAI", self.zhipu_api_url, zhipu_key, "glm-4-flash", messages_payload)
+                        return content, "zhipu/glm-4-flash", search_query_used, search_results_list
+                    except Exception as e_zhipu:
+                        logger.error(f"Zhipu AI fallback failed: {str(e_zhipu)}")
+                        last_error = f"Zhipu AI error: {str(e_zhipu)}"
 
                 # If everything fails, fallback to local generation
                 logger.warning(f"Premium Tier fallback to local responder. Last error: {last_error}")
