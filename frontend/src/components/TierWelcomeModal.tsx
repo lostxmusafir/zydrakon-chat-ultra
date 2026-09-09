@@ -123,12 +123,6 @@ export function TierWelcomeModal({ isOpen, user, onClose }: TierWelcomeModalProp
   const IconComponent = config.icon;
 
   const handleDismiss = () => {
-    try {
-      const userKey = user.id || user.email || "current_user";
-      localStorage.setItem(`zydrakon_tier_welcome_${userKey}`, "true");
-    } catch (e) {
-      console.error(e);
-    }
     onClose();
   };
 
@@ -196,8 +190,8 @@ export function TierWelcomeModal({ isOpen, user, onClose }: TierWelcomeModalProp
             <span>{config.btnText}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
-          <p className="text-[10px] text-zinc-600 font-mono">
-            Appears once on your first login
+          <p className="text-[10px] text-zinc-500 font-mono">
+            Active Tier Status • Zydrakon AI
           </p>
         </div>
       </div>

@@ -252,24 +252,14 @@ export default function Home() {
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(false);
   const [showFullLoginPage, setShowFullLoginPage] = useState(true);
 
-  // 1-Time First Login Tier Welcome Modal States
+  // Tier Welcome Modal States (Triggers every time user logs in)
   const [showTierWelcomeModal, setShowTierWelcomeModal] = useState(false);
   const [tierWelcomeUser, setTierWelcomeUser] = useState<any>(null);
 
-  const checkAndTriggerTierWelcome = (user: any) => {
+  const triggerTierWelcome = (user: any) => {
     if (!user) return;
-    const userKey = user.id || user.email;
-    if (!userKey) return;
-    try {
-      const alreadySeen = localStorage.getItem(`zydrakon_tier_welcome_${userKey}`);
-      if (!alreadySeen) {
-        localStorage.setItem(`zydrakon_tier_welcome_${userKey}`, "true");
-        setTierWelcomeUser(user);
-        setShowTierWelcomeModal(true);
-      }
-    } catch (e) {
-      console.error(e);
-    }
+    setTierWelcomeUser(user);
+    setShowTierWelcomeModal(true);
   };
 
   // Agents states
@@ -341,7 +331,6 @@ export default function Home() {
         try {
           const parsedUser = JSON.parse(storedUser);
           setCurrentUser(parsedUser);
-          checkAndTriggerTierWelcome(parsedUser);
         } catch (e) {
           console.error(e);
         }
@@ -819,7 +808,7 @@ function formatMarkdownInline(text: string): React.ReactNode {
           setCurrentUser(user);
           setShowFullLoginPage(false);
           loadSessions();
-          checkAndTriggerTierWelcome(user);
+          triggerTierWelcome(user);
         }}
         onContinueGuest={() => setShowFullLoginPage(false)}
       />
@@ -1482,7 +1471,7 @@ function formatMarkdownInline(text: string): React.ReactNode {
           setIsAuthenticated(true);
           setCurrentUser(user);
           setShowLoginModal(false);
-          checkAndTriggerTierWelcome(user);
+          triggerTierWelcome(user);
         }}
       />
 
