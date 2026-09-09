@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import mermaid from "mermaid";
-import { Code, Check, Copy, RefreshCw } from "lucide-react";
+import { Code, Check, Copy, RefreshCw, Sun, Moon } from "lucide-react";
 
 interface MermaidProps {
   chart: string;
@@ -15,6 +15,7 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
   const [showRaw, setShowRaw] = useState<boolean>(false);
+  const [canvasTheme, setCanvasTheme] = useState<"grid" | "dark">("grid");
 
   useEffect(() => {
     try {
@@ -25,37 +26,37 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
         suppressErrorRendering: true,
         fontFamily: "var(--font-inter), system-ui, -apple-system, sans-serif",
         themeVariables: {
-          darkMode: true,
-          background: "#18181b",
-          primaryColor: "#26262b",
-          primaryBorderColor: "#cc785c",
-          primaryTextColor: "#f4f4f5",
-          secondaryColor: "#1f1f24",
-          secondaryBorderColor: "#3f3f46",
-          secondaryTextColor: "#e4e4e7",
-          tertiaryColor: "#18181b",
-          tertiaryBorderColor: "#27272a",
-          tertiaryTextColor: "#a1a1aa",
-          lineColor: "#9ca3af",
-          textColor: "#f4f4f5",
-          mainBkg: "#26262b",
-          nodeBorder: "#cc785c",
-          clusterBkg: "#18181b",
-          clusterBorder: "#3f3f46",
-          edgeLabelBackground: "#18181b",
-          actorBkg: "#26262b",
-          actorBorder: "#cc785c",
-          actorTextColor: "#f4f4f5",
-          actorLineColor: "#71717a",
-          signalColor: "#cc785c",
-          signalTextColor: "#f4f4f5",
-          labelBoxBkgColor: "#26262b",
-          labelBoxBorderColor: "#cc785c",
-          labelTextColor: "#f4f4f5",
-          loopTextColor: "#f4f4f5",
-          noteBkgColor: "#2a2b32",
-          noteBorderColor: "#cc785c",
-          noteTextColor: "#f4f4f5",
+          darkMode: false,
+          background: "transparent",
+          primaryColor: "#FFB74D",
+          primaryBorderColor: "#18181B",
+          primaryTextColor: "#111827",
+          secondaryColor: "#9397EC",
+          secondaryBorderColor: "#18181B",
+          secondaryTextColor: "#111827",
+          tertiaryColor: "#4DD0E1",
+          tertiaryBorderColor: "#18181B",
+          tertiaryTextColor: "#111827",
+          lineColor: "#18181B",
+          textColor: "#111827",
+          mainBkg: "transparent",
+          nodeBorder: "#18181B",
+          clusterBkg: "#F8FAFC",
+          clusterBorder: "#94A3B8",
+          edgeLabelBackground: "#FFFFFF",
+          actorBkg: "#FFB74D",
+          actorBorder: "#18181B",
+          actorTextColor: "#111827",
+          actorLineColor: "#18181B",
+          signalColor: "#18181B",
+          signalTextColor: "#111827",
+          labelBoxBkgColor: "#FFFFFF",
+          labelBoxBorderColor: "#18181B",
+          labelTextColor: "#111827",
+          loopTextColor: "#111827",
+          noteBkgColor: "#FEF08A",
+          noteBorderColor: "#18181B",
+          noteTextColor: "#111827",
           fontSize: "13px"
         }
       });
@@ -103,42 +104,41 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
       cleaned = cleaned.replace(/(\s+)->(\s+)/g, "$1-->$2");
     }
 
-    // 7. Sequence diagram adjustments
-    if (/^\s*sequenceDiagram/i.test(cleaned)) {
-      // Clean participant/actor labels so literal quotes don't appear in nodes
-      cleaned = cleaned.replace(/^\s*(participant|actor)\s+([A-Za-z0-9_]+)\s+as\s+"?([^"\r\n]+)"?$/gmi, (match, type, id, label) => {
-        const cleanLabel = label.trim().replace(/^"+|"+$/g, "");
-        return `${type} ${id} as ${cleanLabel}`;
+    // 7. Inject Vibrant Pastel Palette classDefs if not already present
+    if (!cleaned.includes("classDef cOrange") && /^\s*(graph|flowchart)/i.test(cleaned)) {
+      const paletteClassDefs = `
+    classDef cOrange fill:#FFB74D,stroke:#18181B,stroke-width:2px,color:#111827,font-weight:600;
+    classDef cPurple fill:#9397EC,stroke:#18181B,stroke-width:2px,color:#111827,font-weight:600;
+    classDef cPink fill:#FF70C0,stroke:#18181B,stroke-width:2px,color:#111827,font-weight:600;
+    classDef cTeal fill:#4DD0E1,stroke:#18181B,stroke-width:2px,color:#111827,font-weight:600;
+    classDef cBlue fill:#4FC3F7,stroke:#18181B,stroke-width:2px,color:#111827,font-weight:600;
+    classDef cGreen fill:#6EE7B7,stroke:#18181B,stroke-width:2px,color:#111827,font-weight:600;
+      `;
+
+      // Append classDefs after diagram header
+      cleaned = cleaned.replace(/^((?:flowchart|graph)\s+[A-Za-z]+)/im, `$1\n${paletteClassDefs}`);
+
+      // Auto-assign classes to nodes without an explicit class
+      const paletteCycle = ["cOrange", "cPurple", "cTeal", "cBlue", "cGreen", "cOrange"];
+      let cycleIdx = 0;
+
+      // 1. Diamonds always get Pink (Prototyping/Decision style)
+      cleaned = cleaned.replace(/([A-Za-z0-9_-]+)\s*\{([^}]+)\}(?!:::)/g, (match, id, text) => {
+        return `${id}{${text}}:::cPink`;
       });
 
-      // Format Note over Actor1, Actor2 (add space after comma if missing)
-      cleaned = cleaned.replace(/Note\s+over\s+([A-Za-z0-9_]+),([A-Za-z0-9_]+):/gi, "Note over $1, $2:");
-
-      // Replace bare ampersands inside message lines to avoid lexer conflicts
-      cleaned = cleaned.replace(/^(\s*[\w\s()]+(?:->>|-->>|->|-->|-[xX]|--[xX]|\+|-)\s*[\w\s()]+:\s*)(.+)$/gm, (match, prefix, msg) => {
-        let trimmedMsg = msg.trim();
-        trimmedMsg = trimmedMsg.replace(/\s+&\s+/g, " and ");
-        if (trimmedMsg.includes('"')) {
-          if (!(trimmedMsg.startsWith('"') && trimmedMsg.endsWith('"') && (trimmedMsg.match(/"/g) || []).length === 2)) {
-            trimmedMsg = trimmedMsg.replace(/"/g, "'");
-          }
-        }
-        return `${prefix}${trimmedMsg}`;
+      // 2. Rectangles and other shapes get assigned in balanced sequence
+      cleaned = cleaned.replace(/([A-Za-z0-9_-]+)\s*(\[|\()([^\]\)]+)(\]|\))(?!:::)/g, (match, id, open, text, close) => {
+        const assignedClass = paletteCycle[cycleIdx % paletteCycle.length];
+        cycleIdx++;
+        return `${id}${open}${text}${close}:::${assignedClass}`;
       });
     }
 
-    // 8. Fix style lines with light background fills to force dark high-contrast text
-    cleaned = cleaned.replace(/style\s+([A-Za-z0-9_]+)\s+fill\s*:\s*(#[89a-fA-F][0-9a-fA-F]{2,5}|lightgreen|lime|cyan|yellow|#90ee90|#86efac|#a7f3d0)([^,\n]*)/gi, (match, nodeId, fillHex, rest) => {
-      if (!/color\s*:\s*/i.test(rest)) {
-        return `style ${nodeId} fill:${fillHex},color:#000000,font-weight:bold${rest}`;
-      }
-      return match.replace(/color\s*:\s*(#fff|#ffffff|white|#f4f4f5|#ececff)/gi, "color:#000000,font-weight:bold");
-    });
-
-    // 9. General replacement of unescaped & in text blocks
+    // 8. General replacement of unescaped & in text blocks
     cleaned = cleaned.replace(/(\w+)\s+&\s+(\w+)/g, "$1 and $2");
 
-    // 10. Streaming safety: Auto-balance unclosed quotes and brackets
+    // 9. Streaming safety: Auto-balance unclosed quotes and brackets
     const quoteMatches = cleaned.match(/"/g);
     if (quoteMatches && quoteMatches.length % 2 !== 0) {
       cleaned += '"';
@@ -161,47 +161,53 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
         font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
       }
       .node rect, .node circle, .node ellipse, .node polygon, .node path {
-        fill: #26262b !important;
-        stroke: #cc785c !important;
-        stroke-width: 1.5px !important;
-        rx: 8px !important;
-        ry: 8px !important;
+        stroke: #18181b !important;
+        stroke-width: 2px !important;
+        stroke-linecap: round !important;
+        stroke-linejoin: round !important;
+        rx: 8px;
+        ry: 8px;
       }
       .node .label, .node text, .actor text, .label text, text.actor {
         font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
-        fill: #f4f4f5 !important;
-        color: #f4f4f5 !important;
+        fill: #111827 !important;
+        color: #111827 !important;
         font-size: 13px !important;
-        font-weight: 500 !important;
+        font-weight: 600 !important;
       }
       .edgePath .path, .edgePath path {
-        stroke: #9ca3af !important;
-        stroke-width: 1.5px !important;
+        stroke: #18181b !important;
+        stroke-width: 2px !important;
+        stroke-linecap: round !important;
       }
       .edgePath marker path, marker[id*="arrow"] path, marker[id*="flowchart-point"] path {
-        fill: #cc785c !important;
-        stroke: #cc785c !important;
+        fill: #18181b !important;
+        stroke: #18181b !important;
       }
       .cluster rect {
-        fill: #18181b !important;
-        stroke: #3f3f46 !important;
-        stroke-width: 1.2px !important;
+        fill: #f8fafc !important;
+        stroke: #94a3b8 !important;
+        stroke-width: 1.5px !important;
+        stroke-dasharray: 4,4 !important;
         rx: 12px !important;
       }
       .cluster text, .cluster .label {
-        fill: #e4e4e7 !important;
-        font-weight: 600 !important;
+        fill: #334155 !important;
+        font-weight: 700 !important;
         font-size: 12px !important;
         letter-spacing: 0.04em !important;
       }
       .edgeLabel rect {
-        fill: #18181b !important;
+        fill: #ffffff !important;
+        stroke: #18181b !important;
+        stroke-width: 1px !important;
         rx: 4px !important;
       }
       .edgeLabel text, .edgeLabel span {
-        fill: #cbd5e1 !important;
-        color: #cbd5e1 !important;
+        fill: #111827 !important;
+        color: #111827 !important;
         font-size: 11.5px !important;
+        font-weight: 700 !important;
       }
     </style>`;
 
@@ -210,24 +216,6 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
     } else {
       fixed = fixed.replace(/(<svg[^>]*>)/i, `$1${styleInjection}`);
     }
-
-    // Inspect nodes with light background fills and force white text to dark #000000
-    fixed = fixed.replace(/<g[^>]*class="[^"]*node[^"]*"[^>]*>[\s\S]*?<\/g>/gi, (nodeG) => {
-      const hasLightFill = /fill\s*:\s*(#([89a-fA-F]{3,6})|rgb\(\s*(1[89]\d|2[0-5]\d)\s*,\s*(1[89]\d|2[0-5]\d)\s*,\s*(1[89]\d|2[0-5]\d)\s*\)|lightgreen|yellow|lime|cyan|#90ee90|#86efac|#a7f3d0)/i.test(nodeG) ||
-                          /fill="(#([89a-fA-F]{3,6})|lightgreen|yellow|lime|cyan|#90ee90|#86efac|#a7f3d0)"/i.test(nodeG);
-      if (hasLightFill) {
-        return nodeG
-          .replace(/fill="([^"]*)"/g, (match, fillVal) => {
-            const lower = fillVal.toLowerCase().trim();
-            if (lower === "#f4f4f5" || lower === "#ffffff" || lower === "white" || lower === "#fff" || lower === "#ececff") {
-              return 'fill="#000000"';
-            }
-            return match;
-          })
-          .replace(/color:\s*(#fff|#ffffff|white|#f4f4f5|#ececff)/gi, "color: #000000");
-      }
-      return nodeG;
-    });
 
     return fixed;
   };
@@ -243,21 +231,20 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
     const cleanLines = rawInput
       .split("\n")
       .map((l) => l.trim())
-      .filter((l) => l && !/^(flowchart|graph|subgraph|end|sequenceDiagram|classDiagram|%%|style\s+)/i.test(l));
+      .filter((l) => l && !/^(flowchart|graph|subgraph|end|sequenceDiagram|classDiagram|%%|style\s+|classDef\s+)/i.test(l));
 
     interface VisualNode {
       id: string;
       title: string;
       details: string[];
+      isDiamond?: boolean;
     }
 
     const nodes: VisualNode[] = [];
 
-    const addNodeFromText = (id: string, text: string) => {
+    const addNodeFromText = (id: string, text: string, isDiamond = false) => {
       let rawText = text.trim();
-      // Remove enclosing quotes
-      rawText = rawText.replace(/^["']+|["']+$/g, "");
-      // Split into title and bullet points / details
+      rawText = rawText.replace(/^["']+|["']+$/g, "").replace(/:::[A-Za-z0-9_-]+/g, "");
       const parts = rawText
         .split("\n")
         .map((p) => p.trim())
@@ -270,7 +257,7 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
 
       const existing = nodes.find((n) => n.id === id);
       if (!existing) {
-        nodes.push({ id, title, details });
+        nodes.push({ id, title, details, isDiamond });
       } else if (details.length > 0 && existing.details.length === 0) {
         existing.details = details;
       }
@@ -283,6 +270,11 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
         const right = arrowMatch[2].trim();
 
         const parseSegment = (raw: string) => {
+          const diamondMatch = raw.match(/([a-zA-Z0-9_-]+)\s*\{["']?([\s\S]*?)["']?\}/);
+          if (diamondMatch) {
+            addNodeFromText(diamondMatch[1], diamondMatch[2], true);
+            return diamondMatch[1];
+          }
           const m = raw.match(/([a-zA-Z0-9_-]+)\s*(?:\[["']?([\s\S]*?)["']?\]|\(["']?([\s\S]*?)["']?\))?/);
           if (m) {
             const id = m[1];
@@ -296,21 +288,21 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
         parseSegment(left);
         parseSegment(right);
       } else {
-        // Individual node definition line, e.g. D["Tooling..."] or D[Tooling...]
-        const nodeDefMatch = line.match(/^([a-zA-Z0-9_-]+)\s*(\[|\(|\{)\s*["']?([\s\S]*?)["']?\s*(\]|\)|\})$/);
-        if (nodeDefMatch) {
-          const id = nodeDefMatch[1];
-          const text = nodeDefMatch[3];
-          addNodeFromText(id, text);
+        const diamondMatch = line.match(/^([a-zA-Z0-9_-]+)\s*\{["']?([\s\S]*?)["']?\}/);
+        if (diamondMatch) {
+          addNodeFromText(diamondMatch[1], diamondMatch[2], true);
         } else {
-          // Plain text line
-          const cleanText = line
-            .replace(/^[a-zA-Z0-9_-]+\s*[:\[]\s*/, "")
-            .replace(/[\]"']/g, "")
-            .trim();
-          if (cleanText.length > 0 && cleanText.length < 150) {
-            const id = `node_${nodes.length + 1}`;
-            addNodeFromText(id, cleanText);
+          const nodeDefMatch = line.match(/^([a-zA-Z0-9_-]+)\s*(\[|\(|\{)\s*["']?([\s\S]*?)["']?\s*(\]|\)|\})/);
+          if (nodeDefMatch) {
+            addNodeFromText(nodeDefMatch[1], nodeDefMatch[3]);
+          } else {
+            const cleanText = line
+              .replace(/^[a-zA-Z0-9_-]+\s*[:\[]\s*/, "")
+              .replace(/[\]"']/g, "")
+              .trim();
+            if (cleanText.length > 0 && cleanText.length < 150) {
+              addNodeFromText(`node_${nodes.length + 1}`, cleanText);
+            }
           }
         }
       }
@@ -320,9 +312,9 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
       nodes.push({ id: "1", title: "Workflow Ready", details: [] });
     }
 
-    const nodeWidth = 440;
+    const nodeWidth = 400;
     const gap = 36;
-    const totalWidth = 480;
+    const totalWidth = 460;
     const centerX = totalWidth / 2;
 
     const escapeXml = (unsafe: string): string => {
@@ -334,20 +326,29 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
         .replace(/'/g, "&apos;");
     };
 
-    // Calculate dynamic node heights and total diagram height
+    // Color palette from user's image
+    const palette = [
+      { bg: "#FFB74D", border: "#18181B" }, // Orange (Brainstorming)
+      { bg: "#9397EC", border: "#18181B" }, // Purple (Trends / Research)
+      { bg: "#FF70C0", border: "#18181B" }, // Pink (Prototyping / Diamond)
+      { bg: "#4DD0E1", border: "#18181B" }, // Teal (Design / Implementation)
+      { bg: "#4FC3F7", border: "#18181B" }, // Sky Blue (Review / Refinement)
+      { bg: "#6EE7B7", border: "#18181B" }  // Mint Green
+    ];
+
     const nodeHeights = nodes.map((n) => Math.max(56, 36 + (n.details.length > 0 ? n.details.length * 20 : 0)));
     let totalHeight = 40;
     nodeHeights.forEach((h) => {
       totalHeight += h + gap;
     });
 
-    let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="100%" style="max-width: 580px; font-family: var(--font-inter), system-ui, -apple-system, sans-serif; display: block; margin: 0 auto;">
+    let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="100%" style="max-width: 540px; font-family: var(--font-inter), system-ui, -apple-system, sans-serif; display: block; margin: 0 auto;">
       <defs>
-        <marker id="neonArrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 1 L 8 5 L 0 9 z" fill="#cc785c"/>
+        <marker id="sharpArrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="#18181B"/>
         </marker>
-        <filter id="boxGlow" x="-10%" y="-10%" width="120%" height="120%">
-          <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#cc785c" flood-opacity="0.15"/>
+        <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.1"/>
         </filter>
       </defs>`;
 
@@ -358,11 +359,14 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
       const y = currentY;
       const x = centerX - nodeWidth / 2;
 
+      // Select color: diamonds always get pink, others cycle
+      const col = node.isDiamond ? palette[2] : palette[idx % palette.length];
+
       if (idx > 0) {
         const prevH = nodeHeights[idx - 1];
         const prevY = currentY - gap;
         svgContent += `
-          <line x1="${centerX}" y1="${prevY}" x2="${centerX}" y2="${y - 4}" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#neonArrow)" stroke-dasharray="4,2"/>
+          <line x1="${centerX}" y1="${prevY}" x2="${centerX}" y2="${y - 4}" stroke="#18181B" stroke-width="2" marker-end="url(#sharpArrow)"/>
         `;
       }
 
@@ -371,18 +375,18 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
       let detailTexts = "";
       if (node.details.length > 0) {
         node.details.forEach((det, dIdx) => {
-          detailTexts += `<text x="${x + 48}" y="${y + 44 + dIdx * 19}" font-size="11.5" font-weight="500" fill="#9ca3af">${escapeXml(det)}</text>`;
+          detailTexts += `<text x="${x + 48}" y="${y + 44 + dIdx * 19}" font-size="11.5" font-weight="600" fill="#18181B">${escapeXml(det)}</text>`;
         });
       }
 
       const titleY = node.details.length > 0 ? y + 23 : y + h / 2 + 5;
 
       svgContent += `
-        <g filter="url(#boxGlow)">
-          <rect x="${x}" y="${y}" width="${nodeWidth}" height="${h}" rx="10" fill="#26262b" stroke="#cc785c" stroke-width="1.5"/>
-          <circle cx="${x + 24}" cy="${badgeY}" r="12" fill="#cc785c" opacity="0.25"/>
-          <text x="${x + 24}" y="${badgeY + 4.5}" font-size="11.5" font-weight="bold" fill="#cc785c" text-anchor="middle">${idx + 1}</text>
-          <text x="${x + 48}" y="${titleY}" font-size="13" font-weight="600" fill="#f4f4f5">${escapeXml(node.title)}</text>
+        <g filter="url(#softShadow)">
+          <rect x="${x}" y="${y}" width="${nodeWidth}" height="${h}" rx="8" fill="${col.bg}" stroke="${col.border}" stroke-width="2"/>
+          <circle cx="${x + 24}" cy="${badgeY}" r="11" fill="#18181B" opacity="0.12"/>
+          <text x="${x + 24}" y="${badgeY + 4}" font-size="11" font-weight="700" fill="#18181B" text-anchor="middle">${idx + 1}</text>
+          <text x="${x + 46}" y="${titleY}" font-size="13" font-weight="700" fill="#111827">${escapeXml(node.title)}</text>
           ${detailTexts}
         </g>
       `;
@@ -430,7 +434,6 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
           if (orphanEl) orphanEl.remove();
 
           if (isMounted) {
-            // Guarantee visual diagram is rendered without raw code
             const visualSvg = generateVisualFlowchartSvg(chart);
             setSvg(visualSvg);
             setError(null);
@@ -443,7 +446,7 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
       isMounted = false;
       clearTimeout(renderTimer);
     };
-  }, [chart, isDarkMode]);
+  }, [chart, isDarkMode, canvasTheme]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(chart);
@@ -454,32 +457,63 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
   return (
     <div
       ref={ref}
-      className="my-4 rounded-2xl border border-zinc-800/80 bg-[#18181b]/95 p-4 shadow-xl overflow-x-auto scrollbar-thin select-none max-w-full relative group"
+      className={`my-5 rounded-2xl border shadow-xl overflow-x-auto scrollbar-thin select-none max-w-full relative group transition-colors ${
+        canvasTheme === "grid"
+          ? "border-zinc-300/80 bg-[#FAFAFA] [background-image:radial-gradient(#CBD5E1_1.5px,transparent_1.5px)] [background-size:20px_20px]"
+          : "border-zinc-800/80 bg-[#18181B]/95 [background-image:radial-gradient(rgba(255,255,255,0.08)_1.5px,transparent_1.5px)] [background-size:20px_20px]"
+      } p-4`}
     >
-      <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-zinc-800/60 text-xs text-zinc-400 font-medium select-none">
+      <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-zinc-300/60 dark:border-zinc-800/60 text-xs font-medium select-none">
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#cc785c]" />
-          <span className="text-[11px] font-semibold text-zinc-300 uppercase tracking-wider">Mermaid Diagram</span>
+          <div className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#FFB74D] inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#9397EC] inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#FF70C0] inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#4DD0E1] inline-block" />
+          </div>
+          <span className={`text-[11px] font-bold uppercase tracking-wider ${canvasTheme === "grid" ? "text-zinc-800" : "text-zinc-200"}`}>
+            Flowchart
+          </span>
         </div>
-        <button
-          onClick={handleCopy}
-          className="flex items-center gap-1.5 px-2.5 py-1 hover:bg-zinc-800 rounded-md text-zinc-400 hover:text-white transition-colors cursor-pointer text-[11px] border border-zinc-800/60"
-          title="Copy Mermaid Code"
-        >
-          {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-          <span>{copied ? "Copied" : "Copy code"}</span>
-        </button>
+        
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCanvasTheme(canvasTheme === "grid" ? "dark" : "grid")}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${
+              canvasTheme === "grid"
+                ? "bg-white/80 hover:bg-white text-zinc-700 border-zinc-300 shadow-sm"
+                : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700"
+            }`}
+            title="Toggle Canvas Theme"
+          >
+            {canvasTheme === "grid" ? <Moon className="w-3 h-3 text-zinc-600" /> : <Sun className="w-3 h-3 text-amber-400" />}
+            <span>{canvasTheme === "grid" ? "Dark Mode" : "Dot Grid"}</span>
+          </button>
+
+          <button
+            onClick={handleCopy}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${
+              canvasTheme === "grid"
+                ? "bg-white/80 hover:bg-white text-zinc-700 border-zinc-300 shadow-sm"
+                : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700"
+            }`}
+            title="Copy Mermaid Code"
+          >
+            {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+            <span>{copied ? "Copied" : "Copy"}</span>
+          </button>
+        </div>
       </div>
 
       {svg ? (
         <div
-          className="select-none [&>svg]:mx-auto [&>svg]:block [&>svg]:max-w-full [&>svg]:h-auto py-2"
+          className="select-none [&>svg]:mx-auto [&>svg]:block [&>svg]:max-w-full [&>svg]:h-auto py-3"
           dangerouslySetInnerHTML={{ __html: svg }}
         />
       ) : (
-        <div className="text-xs text-zinc-400 animate-pulse font-mono py-6 text-center flex items-center justify-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-[#cc785c] animate-ping" />
-          <span>Rendering diagram...</span>
+        <div className="text-xs text-zinc-500 animate-pulse font-mono py-8 text-center flex items-center justify-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full bg-[#FF70C0] animate-ping" />
+          <span>Rendering colorful flowchart...</span>
         </div>
       )}
     </div>
