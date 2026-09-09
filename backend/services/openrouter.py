@@ -4,7 +4,6 @@ import logging
 from typing import List, Tuple, Optional
 from fastapi import HTTPException
 from backend.utils.config import settings
-from backend.services.search import search_service
 
 logger = logging.getLogger(__name__)
 
@@ -154,115 +153,23 @@ class OpenRouterClient:
         else:
             raise ValueError(f"Empty choices in response from {provider} using {model}")
 
-    def _get_raw_completion(self, model: str, messages: List[dict]) -> str:
-        """Cheap, fast completion call without recursive search triggers."""
-        # Try OpenRouter first if key is present
-        api_key = self._get_next_api_key()
-        if api_key:
-            try:
-                # Use a fast model for query translation
-                query_model = "liquid/lfm-2.5-2.6b:free"
-                return self._call_provider_api("OpenRouter", self.api_url, api_key, query_model, messages)
-            except Exception as e:
-                logger.error(f"OpenRouter query generation call failed using key prefix {api_key[:12]}: {str(e)}")
-
-        # Try Mistral AI fallback
-        mistral_key = self._get_next_mistral_key()
-        if mistral_key:
-            try:
-                query_model = "open-mistral-7b"
-                return self._call_provider_api("Mistral", self.mistral_api_url, mistral_key, query_model, messages)
-            except Exception as e:
-                logger.error(f"Mistral query generation call failed: {str(e)}")
-
-        return "NO_SEARCH"
-
-    def _generate_search_query(self, message: str, history: List[dict] = None) -> str:
-        """Rewrites user query + context into an optimized search query using LLM."""
-        messages = [
-            {
-                "role": "system",
-                "content": (
-                    "You are a search query optimizer. Given the user's message and the conversation history, "
-                    "generate a single concise search query (1-5 keywords) optimized for a search engine to find "
-                    "the most relevant up-to-date information. "
-                    "Output ONLY the plain text search query. Do NOT add quotes, preamble, formatting, or comments. "
-                    "If the message is a greeting, chit-chat, simple instruction, code generation request, or doesn't need external current facts, "
-                    "respond exactly with 'NO_SEARCH'."
-                )
-            }
-        ]
-        if history:
-            # Get last 4 messages for context (2 rounds of conversations)
-            messages.extend(history[-4:])
-        else:
-            messages.append({"role": "user", "content": message})
-
-        try:
-            query = self._get_raw_completion("liquid/lfm-2.5-2.6b:free", messages)
-            query = query.strip().strip('"').strip("'")
-            
-            # Extract clean search query if wrapped in tool calling syntax or brackets
-            tool_match = re.search(r"query=['\"]([^'\"]+)['\"]", query)
-            if tool_match:
-                query = tool_match.group(1).strip()
-            else:
-                query = re.sub(r"<\|[^|]+\|>", "", query)
-                query = re.sub(r"\[.*?\]", "", query)
-                query = query.strip().strip('"').strip("'")
-
-            if "NO_SEARCH" in query or len(query) < 2:
-                return "NO_SEARCH"
-            return query
-        except Exception as e:
-            logger.error(f"Failed to generate optimized search query: {str(e)}")
-            return "NO_SEARCH"
-
     def call_openrouter(self, message: str, requested_model: str, history: List[dict] = None, thinking: bool = False, agent_system_prompt: str = None) -> Tuple[str, str, Optional[str], Optional[List[dict]]]:
         """
-        Sends request to OpenRouter or OpenCode Zen fallback.
-        Incorporates web search if thinking mode is enabled.
+        Sends request to OpenRouter or fallback providers.
         Optionally prepends an agent persona system prompt.
         """
         # 1. Check if both keys are missing
         has_openrouter_keys = any(k.strip() for k in settings.OPENROUTER_API_KEY.split(",") if k.strip())
         if not has_openrouter_keys and not settings.MISTRAL_API_KEY and not settings.ZHIPU_API_KEY:
             mock_resp = f"[Zydrakon AI Developer Mode] Hello! Your backend is running successfully, but neither `OPENROUTER_API_KEY`, `MISTRAL_API_KEY`, nor `ZHIPU_API_KEY` are set in backend/.env. Please add at least one key to enable live AI responses. This is a cached/fallback mock reply to: '{message}'"
-            search_query_used = None
-            search_results_list = None
-            if thinking:
-                search_query_used = f"developer mock info: {message[:15]}"
-                search_results_list = [
-                    {"title": "Zydrakon AI Documentation", "url": "https://zydrakon.ai/docs", "snippet": "Official documentation and system architecture guides for the Zydrakon AI framework, engineered by Raj Patil."},
-                    {"title": "Raj Patil Developer Portfolio", "url": "https://rajpatil.dev", "snippet": "Personal website and software engineering portfolio of Raj Patil, creator of Zydrakon AI."},
-                    {"title": "FastAPI Web Application Development", "url": "https://fastapi.tiangolo.com", "snippet": "FastAPI framework, high performance, easy to learn, fast to code, ready for production."}
-                ]
-            return mock_resp, "mock-developer-model", search_query_used, search_results_list
+            return mock_resp, "mock-developer-model", None, None
 
         # Select the OpenRouter API key for this request cycle
         api_key = self._get_next_api_key()
 
-        # 2. Run web search if thinking mode is ON or if user query contains URL/search terms
-        search_results_text = ""
+        # Web search feature removed
         search_query_used = None
         search_results_list = None
-        
-        has_url_or_search = bool(re.search(r'https?://|www\.|founder|who is|what is the price|who created|who founded', message.lower()))
-        if thinking or has_url_or_search:
-            search_query = self._generate_search_query(message, history)
-            if not search_query or search_query == "NO_SEARCH":
-                # Fallback search query if query contains URL or search intent
-                search_query = message.strip()
-            
-            search_query_used = search_query
-            results = search_service.search(search_query)
-            if results:
-                search_results_list = results
-                search_results_text = "\n\n--- WEB SEARCH & LIVE PAGE RESULTS ---\n"
-                search_results_text += f"Search query: {search_query}\n\n"
-                for r in results:
-                    search_results_text += f"Title: {r['title']}\nURL: {r['url']}\nSnippet: {r['snippet']}\n\n"
-                search_results_text += "---------------------------------------\n\n"
 
         # 3. Assemble prompt payload
         system_instruction = (
@@ -276,15 +183,6 @@ class OpenRouterClient:
             "- Response Style & Conciseness: Answer like a world-class domain expert — extremely smart, crisp, precise, and direct. Lead immediately with the core answer or key takeaway in your first sentence. Avoid verbose intros, repetitive restatements of the prompt, or unnecessary walls of text. Be punchy: use short high-impact paragraphs, clear bullet points, and clean code/diagrams. Match answer length to user intent: give quick sharp answers for straightforward questions, and structured concise answers for complex topics without fluff.\n"
             "- Diagrams, Architecture & Workflows: Whenever the user asks for a diagram, flowchart, process chart, architecture, or visual workflow (e.g. 'draw diagram', 'visual diagram', 'show flowchart'), you MUST prioritize rendering ONLY the visual diagram inside a single ```mermaid code block. Do NOT write unnecessary essays, long preambles, or raw code explanations outside the diagram. Let the visual diagram speak for itself with maximum clarity. Prefer top-down flowcharts (`flowchart TD`) with numbered steps (1, 2, 3...) and logical phase groupings (`subgraph`). ALWAYS ensure maximum text contrast: use dark node backgrounds with vibrant neon borders (e.g. fill:#121215,stroke:#10b981,color:#ffffff or fill:#09090b,stroke:#f97316,color:#ffffff). Never use light pastel background fills with white text. Never use raw bare ampersands (&) inside diagram labels (use 'and'). ALWAYS wrap node labels in double quotes inside shapes (e.g., A[\"1. Step One Text\"])."
         )
-
-        if search_results_text:
-            system_instruction += (
-                "\n\nYou have access to real-time search results and live page contents to help answer the user's query. "
-                "Synthesize the information from these results to directly answer the user's question (such as founder names, company details, or live facts) "
-                "and cite sources (URLs). NEVER state that you cannot browse the web or inspect URLs when search results are provided; "
-                "answer directly using these live facts: "
-                f"\n{search_results_text}"
-            )
 
         messages_payload = []
         # If an agent persona is active, prepend its system prompt before the base identity

@@ -20,104 +20,11 @@ class SearchService:
         return text.strip()
 
     def fetch_url(self, url: str) -> Optional[Dict[str, str]]:
-        """Directly fetches a target webpage and extracts main text content/meta tags."""
-        try:
-            if not url.startswith("http"):
-                url = "https://" + url
-            logger.info(f"Directly fetching webpage URL: {url}")
-            res = requests.get(url, headers=self.headers, timeout=6)
-            if res.status_code == 200:
-                html = res.text
-                title_match = re.search(r'<title[^>]*>(.*?)</title>', html, re.IGNORECASE | re.DOTALL)
-                title = self.clean_html(title_match.group(1)) if title_match else url
-                
-                desc_match = re.search(r'<meta[^>]*name=["\']description["\'][^>]*content=["\'](.*?)["\']', html, re.IGNORECASE)
-                desc = self.clean_html(desc_match.group(1)) if desc_match else ""
-                
-                body_text = self.clean_html(re.sub(r'<script[\s\S]*?</script>|<style[\s\S]*?</style>', '', html))
-                snippet = (desc + " " + body_text[:600]).strip()
-                
-                return {
-                    "title": f"[Direct Page] {title}",
-                    "url": url,
-                    "snippet": snippet[:500]
-                }
-        except Exception as e:
-            logger.warning(f"Direct URL fetch failed for {url}: {str(e)}")
+        """Web search feature removed."""
         return None
 
     def search(self, query: str, max_results: int = 5) -> List[Dict[str, str]]:
-        """
-        Executes a static HTML DuckDuckGo search and optional direct URL fetch.
-        Returns a list of dicts with keys: 'title', 'url', 'snippet'.
-        """
-        if not query or query.strip() == "":
-            return []
-            
-        logger.info(f"Performing web search for: '{query}'")
-        results = []
-
-        # Check if query contains an explicit URL
-        url_match = re.search(r'https?://[^\s]+|www\.[^\s]+', query)
-        if url_match:
-            target_url = url_match.group(0)
-            direct_page = self.fetch_url(target_url)
-            if direct_page:
-                results.append(direct_page)
-
-        try:
-            response = requests.post(
-                self.search_url, 
-                data={"q": query}, 
-                headers=self.headers, 
-                timeout=8
-            )
-            if response.status_code != 200:
-                logger.warning(f"DuckDuckGo search returned status {response.status_code}")
-                return []
-                
-            html = response.text
-            blocks = re.split(r'<div class="[^"]*result__body[^"]*">', html)[1:]
-            results = []
-            
-            for block in blocks:
-                if len(results) >= max_results:
-                    break
-                    
-                # Extract title/url
-                a_match = re.search(r'<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)</a>', block)
-                if not a_match:
-                    a_match = re.search(r'<a[^>]*href="([^"]*)"[^>]*class="[^"]*result__a[^"]*"[^>]*>([\s\S]*?)</a>', block)
-                    
-                # Extract snippet
-                snippet_match = re.search(r'<a[^>]*class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)</a>', block)
-                if not snippet_match:
-                    snippet_match = re.search(r'<a[^>]*href="[^"]*"[^>]*class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)</a>', block)
-                
-                if a_match:
-                    raw_url = a_match.group(1)
-                    title = self.clean_html(a_match.group(2))
-                    
-                    url_clean = raw_url
-                    if "uddg=" in raw_url:
-                        m = re.search(r"uddg=([^&]+)", raw_url)
-                        if m:
-                            url_clean = unquote(m.group(1))
-                    
-                    snippet = ""
-                    if snippet_match:
-                        snippet = self.clean_html(snippet_match.group(1))
-                        
-                    results.append({
-                        "title": title,
-                        "url": url_clean,
-                        "snippet": snippet
-                    })
-            
-            logger.info(f"Successfully retrieved {len(results)} web search results.")
-            return results
-        except Exception as e:
-            logger.error(f"Error during DuckDuckGo search: {str(e)}")
-            return []
+        """Web search feature removed."""
+        return []
 
 search_service = SearchService()

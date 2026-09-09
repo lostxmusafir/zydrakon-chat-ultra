@@ -17,7 +17,6 @@ import {
   User,
   ShieldCheck,
   Zap,
-  Globe,
   ExternalLink,
   Copy,
   Check,
@@ -259,7 +258,6 @@ export default function Home() {
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   // Prompt Bar States
-  const [isWebSearchActive, setIsWebSearchActive] = useState(false);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
 
   const loadWorkspaceMessages = async (wsId: string) => {
@@ -1399,21 +1397,6 @@ function formatMarkdownInline(text: string): React.ReactNode {
                       >
                         <Brain className={`w-3.5 h-3.5 ${thinkingMode ? "text-purple-400 animate-pulse" : "text-zinc-500"}`} />
                         <span>Deep Think</span>
-                      </button>
-
-                      {/* Web Search Toggle Chip */}
-                      <button
-                        type="button"
-                        onClick={() => setIsWebSearchActive(!isWebSearchActive)}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-medium transition-all cursor-pointer border ${
-                          isWebSearchActive
-                            ? "bg-orange-500/20 text-orange-300 border-orange-500/40 shadow-sm shadow-orange-500/20"
-                            : "bg-zinc-900/60 text-zinc-400 border-zinc-800/80 hover:text-zinc-200 hover:bg-zinc-850"
-                        }`}
-                        title="Live web search enhancement"
-                      >
-                        <Globe className={`w-3.5 h-3.5 ${isWebSearchActive ? "text-orange-400 animate-spin" : "text-zinc-500"}`} />
-                        <span>Web Search</span>
                       </button>
 
                       {/* Agent Badge */}
