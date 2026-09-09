@@ -4,15 +4,12 @@ import React from "react";
 import { 
   Crown, 
   Sparkles, 
-  Zap, 
   Award, 
-  CheckCircle2, 
   X, 
   ArrowRight, 
-  ShieldCheck, 
-  Cpu, 
-  Layers,
-  Sparkle
+  Check,
+  Zap,
+  ShieldCheck
 } from "lucide-react";
 
 interface TierWelcomeModalProps {
@@ -28,108 +25,96 @@ export function TierWelcomeModal({ isOpen, user, onClose }: TierWelcomeModalProp
   const tier = rawTier === "premium" ? "premium" : rawTier === "gold" ? "gold" : "free";
   const userName = user.name || "Explorer";
 
-  // Tier-specific configurations
+  // Tier-specific styling & content (Clean Luxury Design — No boxy element cards)
   const tierConfig = {
     premium: {
-      badge: "👑 ULTRA PREMIUM VIP ACTIVE",
-      badgeClass: "bg-purple-500/20 text-purple-300 border-purple-500/40 shadow-sm shadow-purple-500/20",
-      modalBorder: "border-purple-500/40 shadow-[0_0_60px_-10px_rgba(168,85,247,0.35)]",
-      glowBg: "from-purple-900/20 via-pink-900/10 to-transparent",
-      iconBg: "bg-gradient-to-tr from-purple-600 to-pink-500 text-white shadow-lg shadow-purple-900/50",
+      badge: "ULTRA PREMIUM VIP",
+      badgeClass: "bg-purple-500/15 text-purple-300 border-purple-500/30",
+      accentGlow: "rgba(168, 85, 247, 0.25)",
+      borderClass: "border-purple-500/30 shadow-[0_0_80px_-15px_rgba(168,85,247,0.3)]",
+      iconBg: "bg-gradient-to-b from-purple-500/20 to-purple-900/40 text-purple-300 border border-purple-400/30 shadow-lg shadow-purple-950/60",
       icon: Crown,
-      title: "Welcome to Ultra Premium VIP",
-      subtitle: `Congratulations ${userName}! You have unlocked full unrestricted access to Zydrakon AI's most powerful intelligence engines and VIP privileges.`,
-      perks: [
+      title: "Welcome to Ultra VIP",
+      subtitle: `Welcome ${userName}. Your account has been elevated to our highest tier with unrestricted frontier intelligence and VIP privileges.`,
+      features: [
         {
-          icon: Crown,
           title: "All Frontier Models Unlocked",
-          desc: "Full access to Zydrakon-Premium, Zhipu GLM-4 Flash, Mistral, and future flagship models."
+          highlight: "Zydrakon-Premium, GLM-4 Flash & Mistral"
         },
         {
-          icon: Zap,
-          title: "Maximum Daily Limits & Zero Wait",
-          desc: "Unlimited prompt throughput with priority cloud queue routing and lowest latency."
+          title: "Zero-Wait Turbo Processing",
+          highlight: "Highest cloud queue priority & lowest latency"
         },
         {
-          icon: Cpu,
           title: "Deep Reasoning & Architecture",
-          desc: "Complex logic synthesis, multi-file code development, and pitch black visual diagrams."
+          highlight: "Complex code synthesis & high-contrast visual diagrams"
         },
         {
-          icon: ShieldCheck,
-          title: "Exclusive VIP Personas",
-          desc: "Access to advanced AI personas including Code Architect, Research Analyst, and Ruthless Advisor."
+          title: "Maximum Daily Throughput",
+          highlight: "Expanded prompt limits for heavy development"
         }
       ],
       btnGradient: "bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 hover:brightness-110 shadow-lg shadow-purple-900/50 text-white",
       btnText: "Enter Ultra VIP Workspace"
     },
     gold: {
-      badge: "⭐ GOLD TIER ACTIVATED",
-      badgeClass: "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm shadow-amber-500/20",
-      modalBorder: "border-amber-500/40 shadow-[0_0_60px_-10px_rgba(245,158,11,0.3)]",
-      glowBg: "from-amber-900/20 via-yellow-900/10 to-transparent",
-      iconBg: "bg-gradient-to-tr from-amber-500 to-yellow-400 text-black shadow-lg shadow-amber-900/50",
+      badge: "GOLD MEMBER",
+      badgeClass: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+      accentGlow: "rgba(245, 158, 11, 0.25)",
+      borderClass: "border-amber-500/30 shadow-[0_0_80px_-15px_rgba(245,158,11,0.25)]",
+      iconBg: "bg-gradient-to-b from-amber-500/20 to-amber-900/40 text-amber-300 border border-amber-400/30 shadow-lg shadow-amber-950/60",
       icon: Award,
-      title: "Welcome to Gold VIP Tier",
-      subtitle: `Great to have you on board, ${userName}! Your Gold membership is live with dual-engine AI capabilities and elevated daily limits.`,
-      perks: [
+      title: "Welcome to Gold VIP",
+      subtitle: `Welcome ${userName}. Dual-engine intelligence and expanded limits are now active on your workspace.`,
+      features: [
         {
-          icon: Cpu,
-          title: "Dual-Engine AI Intelligence",
-          desc: "Equipped with Zydrakon Core AI plus high-speed Zhipu GLM-4 Flash reasoning."
+          title: "Dual AI Engines",
+          highlight: "Zydrakon Core + high-speed Zhipu GLM-4 Flash"
         },
         {
-          icon: Zap,
-          title: "Double Daily Prompt Quota",
-          desc: "2x expanded prompt volume each day for uninterrupted coding and creative sessions."
+          title: "Double Daily Quota",
+          highlight: "2x expanded prompt volume each day"
         },
         {
-          icon: Layers,
-          title: "Enhanced Visual Diagrams",
-          desc: "High-contrast Mermaid system architecture maps and flowcharts rendered in real-time."
+          title: "Instant Visual Flowcharts",
+          highlight: "Real-time Mermaid architecture maps"
         },
         {
-          icon: Sparkles,
-          title: "Priority Response Routing",
-          desc: "Turbo speed processing with reduced queue delays during peak server loads."
+          title: "Priority Server Routing",
+          highlight: "Reduced queue delays during peak traffic"
         }
       ],
       btnGradient: "bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:brightness-110 shadow-lg shadow-amber-900/50 text-black font-black",
       btnText: "Activate Gold Experience"
     },
     free: {
-      badge: "✨ FREE TIER ACTIVATED",
-      badgeClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm shadow-emerald-500/20",
-      modalBorder: "border-emerald-500/30 shadow-[0_0_50px_-10px_rgba(16,185,129,0.25)]",
-      glowBg: "from-emerald-900/20 via-teal-900/10 to-transparent",
-      iconBg: "bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-lg shadow-emerald-900/50",
+      badge: "FREE ACCOUNT",
+      badgeClass: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+      accentGlow: "rgba(16, 185, 129, 0.25)",
+      borderClass: "border-emerald-500/30 shadow-[0_0_80px_-15px_rgba(16,185,129,0.2)]",
+      iconBg: "bg-gradient-to-b from-emerald-500/20 to-emerald-900/40 text-emerald-300 border border-emerald-400/30 shadow-lg shadow-emerald-950/60",
       icon: Sparkles,
       title: "Welcome to Zydrakon AI",
-      subtitle: `Welcome ${userName}! Your Free account is completely active. Enjoy lightning-fast intelligent reasoning, multi-turn chat, and visual diagrams.`,
-      perks: [
+      subtitle: `Welcome ${userName}. Your free intelligent workspace is fully ready for conversations, coding, and diagrams.`,
+      features: [
         {
-          icon: Zap,
           title: "Zydrakon Core Engine",
-          desc: "Powered by efficient, high-speed open-weights AI models calibrated for precision."
+          highlight: "Fast, accurate open-weights intelligence"
         },
         {
-          icon: Layers,
-          title: "Visual Diagrams & Flowcharts",
-          desc: "Interactive Mermaid diagrams with automatic neon dark-mode visualization."
+          title: "Visual Diagrams & Maps",
+          highlight: "Interactive Mermaid flowcharts rendered automatically"
         },
         {
-          icon: Sparkle,
-          title: "Unlimited Session Branching",
-          desc: "Create and branch as many chat sessions as you need to explore distinct ideas."
+          title: "Unlimited Chat Branching",
+          highlight: "Create and branch as many sessions as you need"
         },
         {
-          icon: ArrowRight,
-          title: "Seamless Upgrades Available",
-          desc: "Switch to Gold or Ultra Premium anytime to unlock dual-engines and VIP throughput."
+          title: "Upgrade Whenever Ready",
+          highlight: "Switch to Gold or Ultra Premium for dual engines"
         }
       ],
-      btnGradient: "bg-gradient-to-r from-emerald-600 to-teal-500 hover:brightness-110 shadow-lg shadow-emerald-900/50 text-white font-bold",
+      btnGradient: "bg-gradient-to-r from-emerald-600 to-teal-500 hover:brightness-110 shadow-lg shadow-emerald-900/50 text-white",
       btnText: "Start Chatting Free"
     }
   };
@@ -138,7 +123,6 @@ export function TierWelcomeModal({ isOpen, user, onClose }: TierWelcomeModalProp
   const IconComponent = config.icon;
 
   const handleDismiss = () => {
-    // Record that this user has seen their 1-time tier welcome popup
     try {
       const userKey = user.id || user.email || "current_user";
       localStorage.setItem(`zydrakon_tier_welcome_${userKey}`, "true");
@@ -151,79 +135,69 @@ export function TierWelcomeModal({ isOpen, user, onClose }: TierWelcomeModalProp
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 select-none animate-fade-in">
       <div 
-        className={`w-full max-w-lg bg-[#09090b] border ${config.modalBorder} rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden space-y-6 transition-all`}
+        className={`w-full max-w-md bg-[#09090b] border ${config.borderClass} rounded-3xl p-7 shadow-2xl relative overflow-hidden text-center space-y-6 transition-all`}
       >
-        {/* Ambient Top Glow */}
-        <div className={`absolute -top-24 -left-24 w-64 h-64 bg-gradient-to-br ${config.glowBg} rounded-full blur-3xl pointer-events-none`} />
-        <div className={`absolute -top-24 -right-24 w-64 h-64 bg-gradient-to-bl ${config.glowBg} rounded-full blur-3xl pointer-events-none`} />
+        {/* Subtle Ambient Radial Glow */}
+        <div 
+          className="absolute -top-32 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full blur-3xl pointer-events-none"
+          style={{ backgroundColor: config.accentGlow }}
+        />
 
-        {/* Close Button */}
+        {/* Minimalist Close Button */}
         <button
           onClick={handleDismiss}
-          className="absolute top-5 right-5 p-2 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-all cursor-pointer border border-zinc-800/80"
+          className="absolute top-4 right-4 p-2 rounded-full hover:bg-zinc-800/80 text-zinc-500 hover:text-zinc-200 transition-all cursor-pointer"
           title="Dismiss"
         >
           <X className="w-4 h-4" />
         </button>
 
-        {/* Header Section */}
-        <div className="flex items-start gap-4">
-          <div className={`w-14 h-14 rounded-2xl ${config.iconBg} flex items-center justify-center shrink-0`}>
-            <IconComponent className="w-7 h-7" />
+        {/* Center Emblem Icon */}
+        <div className="flex flex-col items-center pt-2">
+          <div className={`w-16 h-16 rounded-3xl ${config.iconBg} flex items-center justify-center mb-4 transition-transform hover:scale-105`}>
+            <IconComponent className="w-8 h-8" />
           </div>
-          <div className="space-y-1.5 pr-6">
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono tracking-wider uppercase border ${config.badgeClass}`}>
-              {config.badge}
-            </span>
-            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              {config.title}
-            </h2>
-          </div>
-        </div>
 
-        {/* Subtitle / Description */}
-        <p className="text-zinc-400 text-xs sm:text-sm leading-relaxed">
-          {config.subtitle}
-        </p>
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono font-bold tracking-widest uppercase border ${config.badgeClass}`}>
+            {config.badge}
+          </span>
 
-        {/* Perks Grid */}
-        <div className="space-y-2.5 pt-1">
-          <p className="text-[11px] font-mono text-zinc-500 uppercase tracking-wider font-semibold">
-            Included in your plan
+          <h2 className="text-2xl font-black text-white tracking-tight mt-3">
+            {config.title}
+          </h2>
+
+          <p className="text-zinc-400 text-xs leading-relaxed mt-2 max-w-xs mx-auto">
+            {config.subtitle}
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {config.perks.map((perk, idx) => {
-              const PerkIcon = perk.icon;
-              return (
-                <div 
-                  key={idx}
-                  className="p-3 rounded-2xl bg-zinc-900/60 border border-zinc-800/70 hover:border-zinc-700/80 transition-all flex items-start gap-2.5"
-                >
-                  <div className="p-1.5 rounded-xl bg-zinc-850 text-zinc-300 border border-zinc-750 shrink-0 mt-0.5">
-                    <PerkIcon className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white leading-snug">{perk.title}</h4>
-                    <p className="text-[11px] text-zinc-400 leading-normal mt-0.5">{perk.desc}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </div>
 
-        {/* Action Button */}
-        <div className="pt-2 space-y-2">
+        {/* Clean, Elegant Features List (No heavy box cards) */}
+        <div className="space-y-3 pt-2 text-left border-t border-b border-zinc-850/80 py-4">
+          {config.features.map((feat, idx) => (
+            <div key={idx} className="flex items-start gap-3">
+              <div className="mt-1 w-4 h-4 rounded-full bg-zinc-800/80 border border-zinc-700/60 flex items-center justify-center shrink-0">
+                <Check className="w-2.5 h-2.5 text-zinc-200" />
+              </div>
+              <div className="text-xs leading-snug">
+                <span className="font-semibold text-zinc-200">{feat.title}</span>
+                <span className="text-zinc-500 block text-[11px] mt-0.5">{feat.highlight}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* CTA Button */}
+        <div className="space-y-2 pt-1">
           <button
             type="button"
             onClick={handleDismiss}
-            className={`w-full py-3.5 px-5 rounded-2xl ${config.btnGradient} transition-all cursor-pointer font-bold text-sm flex items-center justify-center gap-2`}
+            className={`w-full py-3.5 px-6 rounded-2xl ${config.btnGradient} transition-all cursor-pointer font-bold text-xs sm:text-sm flex items-center justify-center gap-2 tracking-wide`}
           >
             <span>{config.btnText}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
-          <p className="text-center text-[10px] text-zinc-600 font-mono">
-            Notice: This onboarding welcome appears only once on your first login.
+          <p className="text-[10px] text-zinc-600 font-mono">
+            Appears once on your first login
           </p>
         </div>
       </div>
