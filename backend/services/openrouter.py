@@ -7,16 +7,26 @@ from backend.utils.config import settings
 
 logger = logging.getLogger(__name__)
 
-# List of robust free models to choose from/fallback to (empirically verified active)
+# List of all active free models from OpenRouter (scraped directly from live OpenRouter API)
 FREE_MODELS = [
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "meta-llama/llama-3.1-8b-instruct:free",
-    "mistralai/mistral-7b-instruct:free",
-    "google/gemma-2-9b-it:free",
+    "openrouter/free",
+    "google/gemma-4-31b-it:free",
     "google/gemma-4-26b-a4b-it:free",
+    "nvidia/nemotron-3-super-120b-a12b:free",
+    "nvidia/nemotron-3-ultra-550b-a55b:free",
     "nvidia/nemotron-3.5-lightning:free",
     "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-    "openrouter/free"
+    "nex-agi/nex-n2.5-pro:free",
+    "nex-agi/nex-n2.5-mini:free",
+    "inclusionai/ling-3.0-flash-fin:free",
+    "inclusionai/ling-3.0-flash-sante:free",
+    "thinkingmachines/inkling:free",
+    "thinkingmachines/inkling-small:free",
+    "poolside/laguna-s-2.1:free",
+    "poolside/laguna-xs-2.1:free",
+    "dots-studio/dots-3-note-preview:free",
+    "cohere/north-mini-code:free",
+    "liquid/lfm-2.5-2.6b:free"
 ]
 
 class OpenRouterClient:
@@ -33,14 +43,24 @@ class OpenRouterClient:
         self.zhipu_models = ["glm-4-flash"]
         self.openrouter_model_index = 0
         self.openrouter_models = [
-            "meta-llama/llama-3.3-70b-instruct:free",
-            "meta-llama/llama-3.1-8b-instruct:free",
-            "mistralai/mistral-7b-instruct:free",
-            "google/gemma-2-9b-it:free",
+            "openrouter/free",
+            "google/gemma-4-31b-it:free",
             "google/gemma-4-26b-a4b-it:free",
+            "nvidia/nemotron-3-super-120b-a12b:free",
+            "nvidia/nemotron-3-ultra-550b-a55b:free",
             "nvidia/nemotron-3.5-lightning:free",
             "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-            "openrouter/free"
+            "nex-agi/nex-n2.5-pro:free",
+            "nex-agi/nex-n2.5-mini:free",
+            "inclusionai/ling-3.0-flash-fin:free",
+            "inclusionai/ling-3.0-flash-sante:free",
+            "thinkingmachines/inkling:free",
+            "thinkingmachines/inkling-small:free",
+            "poolside/laguna-s-2.1:free",
+            "poolside/laguna-xs-2.1:free",
+            "dots-studio/dots-3-note-preview:free",
+            "cohere/north-mini-code:free",
+            "liquid/lfm-2.5-2.6b:free"
         ]
 
     def _get_next_mistral_model(self) -> str:
