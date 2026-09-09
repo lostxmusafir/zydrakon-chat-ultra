@@ -170,7 +170,11 @@ async def chat(chat_request: ChatRequest, request: Request, user: dict = Depends
     except HTTPException as he:
         raise he
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"OpenRouter service exception: {str(e)}")
+        logger.error(f"Chat service exception encountered: {str(e)}", exc_info=True)
+        reply_content = openrouter_client.get_local_fallback_response(message_content)
+        actual_model = "zydrakon-orchestration-resilient"
+        search_query = None
+        search_results = None
     
     latency_ms = int((time.time() - start_time) * 1000)
 

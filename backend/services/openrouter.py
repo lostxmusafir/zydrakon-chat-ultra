@@ -8,13 +8,16 @@ from backend.services.search import search_service
 
 logger = logging.getLogger(__name__)
 
-# List of robust free models to choose from/fallback to
+# List of robust free models to choose from/fallback to (empirically verified active)
 FREE_MODELS = [
-    "z-ai/glm-5.2:free",
-    "openai/gpt-oss-20b:free",
-    "nvidia/nemotron-nano-12b-2-vl:free",
-    "deepseek/deepseek-v4-flash",
-    "poolside/laguna-m.1:free"
+    "liquid/lfm-2.5-2.6b:free",
+    "google/gemma-4-26b-a4b-it:free",
+    "nvidia/nemotron-3.5-lightning:free",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+    "cohere/north-mini-code:free",
+    "poolside/laguna-s-2.1:free",
+    "nex-agi/nex-n2.5-mini:free",
+    "openrouter/free"
 ]
 
 class OpenRouterClient:
@@ -23,22 +26,30 @@ class OpenRouterClient:
         self.api_key_index = 0
         self.mistral_api_url = f"{settings.MISTRAL_BASE_URL}/chat/completions"
         self.mistral_key_index = 0
-        self.mistral_models = ["open-mistral-7b", "mistral-small-latest"]
+        self.mistral_model_index = 0
+        self.mistral_models = ["open-mistral-7b"]
         self.zhipu_api_url = f"{settings.ZHIPU_BASE_URL}/chat/completions"
         self.zhipu_key_index = 0
         self.zhipu_model_index = 0
-        self.zhipu_models = ["glm-4.5-air", "glm-5.3-flash", "glm-4-flash"]
+        self.zhipu_models = ["glm-4-flash"]
         self.openrouter_model_index = 0
         self.openrouter_models = [
             "liquid/lfm-2.5-2.6b:free",
+            "google/gemma-4-26b-a4b-it:free",
             "nvidia/nemotron-3.5-lightning:free",
+            "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+            "cohere/north-mini-code:free",
             "poolside/laguna-s-2.1:free",
             "nex-agi/nex-n2.5-mini:free",
-            "nex-agi/nex-n2.5-pro:free"
+            "openrouter/free"
         ]
 
     def _get_next_mistral_model(self) -> str:
         """Gets the next Mistral AI model in a round-robin rotation."""
+        if not hasattr(self, 'mistral_model_index'):
+            self.mistral_model_index = 0
+        if not self.mistral_models:
+            return "open-mistral-7b"
         model = self.mistral_models[self.mistral_model_index % len(self.mistral_models)]
         self.mistral_model_index = (self.mistral_model_index + 1) % len(self.mistral_models)
         return model
@@ -54,6 +65,10 @@ class OpenRouterClient:
 
     def _get_next_zhipu_model(self) -> str:
         """Gets the next Zhipu AI model in a round-robin rotation."""
+        if not hasattr(self, 'zhipu_model_index'):
+            self.zhipu_model_index = 0
+        if not self.zhipu_models:
+            return "glm-4-flash"
         model = self.zhipu_models[self.zhipu_model_index % len(self.zhipu_models)]
         self.zhipu_model_index = (self.zhipu_model_index + 1) % len(self.zhipu_models)
         return model
@@ -69,6 +84,10 @@ class OpenRouterClient:
 
     def _get_next_openrouter_model(self) -> str:
         """Gets the next OpenRouter model in a round-robin rotation."""
+        if not hasattr(self, 'openrouter_model_index'):
+            self.openrouter_model_index = 0
+        if not self.openrouter_models:
+            return "liquid/lfm-2.5-2.6b:free"
         model = self.openrouter_models[self.openrouter_model_index % len(self.openrouter_models)]
         self.openrouter_model_index = (self.openrouter_model_index + 1) % len(self.openrouter_models)
         return model
@@ -250,190 +269,172 @@ class OpenRouterClient:
         
         last_error = None
         
-        # Phase 0: Free Tier - Route to Mistral AI with round-robin model selection, failover to Zhipu AI / OpenRouter
-        if requested_model == "zydrakon-free":
-            selected_mistral_model = self._get_next_mistral_model()
-            logger.info(f"Attempting Free Tier call to Mistral AI using model: {selected_mistral_model}")
-            mistral_key = self._get_next_mistral_key()
-            if mistral_key:
-                try:
-                    content = self._call_provider_api("Mistral", self.mistral_api_url, mistral_key, selected_mistral_model, messages_payload)
-                    return content, f"mistral/{selected_mistral_model}", search_query_used, search_results_list
-                except Exception as e:
-                    logger.error(f"Free Tier Mistral call failed for {selected_mistral_model}: {str(e)}")
-                    last_error = f"Mistral ({selected_mistral_model}) error: {str(e)}"
-                    # Try fallback to the other Mistral model
-                    fallback_mistral_model = "mistral-medium-latest" if selected_mistral_model == "mistral-large-latest" else "mistral-large-latest"
-                    logger.info(f"Attempting Free Tier fallback call to Mistral AI using model: {fallback_mistral_model}")
+        try:
+            # Phase 0: Free Tier - Route to Mistral AI (open-mistral-7b), failover to OpenRouter / Zhipu AI
+            if requested_model == "zydrakon-free":
+                selected_mistral_model = self._get_next_mistral_model()
+                logger.info(f"Attempting Free Tier call to Mistral AI using model: {selected_mistral_model}")
+                mistral_key = self._get_next_mistral_key()
+                if mistral_key:
                     try:
-                        content = self._call_provider_api("Mistral", self.mistral_api_url, mistral_key, fallback_mistral_model, messages_payload)
-                        return content, f"mistral/{fallback_mistral_model}", search_query_used, search_results_list
-                    except Exception as e2:
-                        logger.error(f"Free Tier Mistral fallback failed for {fallback_mistral_model}: {str(e2)}")
-                        last_error = f"Mistral fallback ({fallback_mistral_model}) error: {str(e2)}"
-            
-            # Failover to Zhipu AI if Mistral fails
-            zhipu_key = self._get_next_zhipu_key()
-            if zhipu_key:
-                logger.info("Mistral failed. Attempting Zhipu AI failover...")
-                try:
-                    content = self._call_provider_api("ZhipuAI", self.zhipu_api_url, zhipu_key, "glm-4.5-flash", messages_payload)
-                    return content, "zhipu/glm-4.5-flash", search_query_used, search_results_list
-                except Exception as e_zhipu:
-                    logger.error(f"Zhipu failover failed: {str(e_zhipu)}")
-
-            # Failover to OpenRouter if Zhipu fails
-            if api_key:
-                logger.info("Mistral/Zhipu failed. Attempting OpenRouter failover...")
-                try:
-                    content = self._call_provider_api("OpenRouter", self.api_url, api_key, "liquid/lfm-2.5-2.6b:free", messages_payload)
-                    return content, "liquid/lfm-2.5-2.6b:free", search_query_used, search_results_list
-                except Exception as e_or:
-                    logger.error(f"OpenRouter failover failed: {str(e_or)}")
-
-            # If all APIs fail, fallback to local generation
-            logger.warning(f"Free Tier fallback to local responder. Last error: {last_error}")
-            fallback_content = self.get_local_fallback_response(message)
-            return fallback_content, "mock-local-fallback", search_query_used, search_results_list
-
-        # Phase 0.5: Zhipu Free Tier - Route directly to Zhipu AI with round-robin model selection and rotating API keys
-        if requested_model == "zhipu-free":
-            selected_zhipu_model = self._get_next_zhipu_model()
-            zhipu_key = self._get_next_zhipu_key()
-            logger.info(f"Attempting Free Tier call to Zhipu AI using model: {selected_zhipu_model} and rotating key: {zhipu_key[:12] if zhipu_key else 'None'}...")
-            if zhipu_key:
-                try:
-                    content = self._call_provider_api("ZhipuAI", self.zhipu_api_url, zhipu_key, selected_zhipu_model, messages_payload)
-                    return content, f"zhipu/{selected_zhipu_model}", search_query_used, search_results_list
-                except Exception as e:
-                    logger.error(f"Free Tier Zhipu call failed for {selected_zhipu_model}: {str(e)}")
-                    last_error = f"Zhipu ({selected_zhipu_model}) error: {str(e)}"
-                    # Try fallback to other Zhipu models
-                    for fallback_model in self.zhipu_models:
-                        if fallback_model == selected_zhipu_model:
-                            continue
-                        logger.info(f"Attempting Free Tier fallback call to Zhipu AI using model: {fallback_model}")
+                        content = self._call_provider_api("Mistral", self.mistral_api_url, mistral_key, selected_mistral_model, messages_payload)
+                        return content, f"mistral/{selected_mistral_model}", search_query_used, search_results_list
+                    except Exception as e:
+                        logger.error(f"Free Tier Mistral call failed for {selected_mistral_model}: {str(e)}")
+                        last_error = f"Mistral ({selected_mistral_model}) error: {str(e)}"
+                
+                # Failover to OpenRouter free models if Mistral fails or rate limits
+                if api_key:
+                    logger.info("Mistral unavailable. Attempting OpenRouter failovers...")
+                    for or_model in self.openrouter_models:
                         try:
-                            content = self._call_provider_api("ZhipuAI", self.zhipu_api_url, zhipu_key, fallback_model, messages_payload)
-                            return content, f"zhipu/{fallback_model}", search_query_used, search_results_list
-                        except Exception as e2:
-                            logger.error(f"Free Tier Zhipu fallback failed for {fallback_model}: {str(e2)}")
-                            last_error = f"Zhipu fallback ({fallback_model}) error: {str(e2)}"
-            
-            # Failover to Mistral AI if Zhipu has insufficient balance
+                            active_key = self._get_next_api_key() or api_key
+                            content = self._call_provider_api("OpenRouter", self.api_url, active_key, or_model, messages_payload)
+                            return content, or_model, search_query_used, search_results_list
+                        except Exception as e_or:
+                            logger.error(f"OpenRouter failover failed for {or_model}: {str(e_or)}")
+                            last_error = f"OpenRouter ({or_model}) error: {str(e_or)}"
+
+                # Failover to Zhipu AI if Mistral and OpenRouter fail
+                zhipu_key = self._get_next_zhipu_key()
+                if zhipu_key:
+                    logger.info("Mistral/OpenRouter failed. Attempting Zhipu AI failover...")
+                    try:
+                        content = self._call_provider_api("ZhipuAI", self.zhipu_api_url, zhipu_key, "glm-4-flash", messages_payload)
+                        return content, "zhipu/glm-4-flash", search_query_used, search_results_list
+                    except Exception as e_zhipu:
+                        logger.error(f"Zhipu failover failed: {str(e_zhipu)}")
+
+                # If all remote APIs fail, fallback to local generation
+                logger.warning(f"Free Tier fallback to local responder. Last error: {last_error}")
+                fallback_content = self.get_local_fallback_response(message)
+                return fallback_content, "mock-local-fallback", search_query_used, search_results_list
+
+            # Phase 0.5: Zhipu Free Tier - Route to Zhipu AI, failover to Mistral AI then OpenRouter
+            if requested_model == "zhipu-free":
+                selected_zhipu_model = self._get_next_zhipu_model()
+                zhipu_key = self._get_next_zhipu_key()
+                logger.info(f"Attempting Free Tier call to Zhipu AI using model: {selected_zhipu_model}...")
+                if zhipu_key:
+                    try:
+                        content = self._call_provider_api("ZhipuAI", self.zhipu_api_url, zhipu_key, selected_zhipu_model, messages_payload)
+                        return content, f"zhipu/{selected_zhipu_model}", search_query_used, search_results_list
+                    except Exception as e:
+                        logger.error(f"Free Tier Zhipu call failed for {selected_zhipu_model}: {str(e)}")
+                        last_error = f"Zhipu ({selected_zhipu_model}) error: {str(e)}"
+                
+                # Failover to Mistral AI if Zhipu has insufficient balance or rate limits
+                mistral_key = self._get_next_mistral_key()
+                if mistral_key:
+                    logger.info("Zhipu failed. Attempting Mistral AI failover...")
+                    try:
+                        content = self._call_provider_api("Mistral", self.mistral_api_url, mistral_key, "open-mistral-7b", messages_payload)
+                        return content, "mistral/open-mistral-7b", search_query_used, search_results_list
+                    except Exception as e_mis:
+                        logger.error(f"Mistral failover from Zhipu failed: {str(e_mis)}")
+
+                # Failover to OpenRouter if Mistral also fails
+                if api_key:
+                    logger.info("Zhipu/Mistral failed. Attempting OpenRouter failover...")
+                    for or_model in self.openrouter_models:
+                        try:
+                            active_key = self._get_next_api_key() or api_key
+                            content = self._call_provider_api("OpenRouter", self.api_url, active_key, or_model, messages_payload)
+                            return content, or_model, search_query_used, search_results_list
+                        except Exception as e_or:
+                            logger.error(f"OpenRouter failover failed for {or_model}: {str(e_or)}")
+
+                # If all APIs fail, fallback to local generation
+                logger.warning(f"Free Tier Zhipu fallback to local responder. Last error: {last_error}")
+                fallback_content = self.get_local_fallback_response(message)
+                return fallback_content, "mock-local-fallback", search_query_used, search_results_list
+
+            # Phase 0.7: Premium Tier - Route to OpenRouter with round-robin model rotation and key rotation
+            if requested_model == "zydrakon-premium":
+                selected_model = self._get_next_openrouter_model()
+                logger.info(f"Attempting Premium Tier call to OpenRouter using model: {selected_model}...")
+                if api_key:
+                    # 1. Try selected primary round-robin model
+                    try:
+                        content = self._call_provider_api("OpenRouter", self.api_url, api_key, selected_model, messages_payload)
+                        return content, selected_model, search_query_used, search_results_list
+                    except Exception as e:
+                        logger.error(f"Premium Tier OpenRouter call failed for {selected_model}: {str(e)}")
+                        last_error = f"OpenRouter ({selected_model}) error: {str(e)}"
+                        
+                        # 2. Iterate through alternate verified OpenRouter models in pool
+                        for alt_model in self.openrouter_models:
+                            if alt_model == selected_model:
+                                continue
+                            logger.info(f"Attempting OpenRouter failover to alternate model: {alt_model}...")
+                            try:
+                                alt_key = self._get_next_api_key() or api_key
+                                content = self._call_provider_api("OpenRouter", self.api_url, alt_key, alt_model, messages_payload)
+                                return content, alt_model, search_query_used, search_results_list
+                            except Exception as alt_err:
+                                logger.error(f"OpenRouter failover failed for {alt_model}: {str(alt_err)}")
+                                last_error = f"OpenRouter failover ({alt_model}) error: {str(alt_err)}"
+                
+                # If OpenRouter models fail, fall back to Mistral AI
+                mistral_key = self._get_next_mistral_key()
+                if mistral_key:
+                    logger.info("Attempting Mistral AI fallback call using model: open-mistral-7b")
+                    try:
+                        content = self._call_provider_api("Mistral", self.mistral_api_url, mistral_key, "open-mistral-7b", messages_payload)
+                        return content, "mistral/open-mistral-7b", search_query_used, search_results_list
+                    except Exception as e:
+                        logger.error(f"Mistral AI fallback failed: {str(e)}")
+                        last_error = f"Mistral AI error: {str(e)}"
+
+                # If everything fails, fallback to local generation
+                logger.warning(f"Premium Tier fallback to local responder. Last error: {last_error}")
+                fallback_content = self.get_local_fallback_response(message)
+                return fallback_content, "mock-local-fallback", search_query_used, search_results_list
+
+            # Pro Tier - Proceed to OpenRouter with round-robin key rotation
+            # Phase 4a: Try requested model on OpenRouter
+            if api_key:
+                logger.info(f"Attempting OpenRouter call with model: {requested_model} using key: {api_key[:12]}...")
+                try:
+                    content = self._call_provider_api("OpenRouter", self.api_url, api_key, requested_model, messages_payload)
+                    return content, requested_model, search_query_used, search_results_list
+                except Exception as e:
+                    logger.error(f"OpenRouter call failed for {requested_model}: {str(e)}")
+                    last_error = f"OpenRouter ({requested_model}) error: {str(e)}"
+
+            # Phase 4b: Fallback to Mistral AI
             mistral_key = self._get_next_mistral_key()
             if mistral_key:
-                logger.info("Zhipu failed. Attempting Mistral AI failover...")
+                logger.info("Attempting Mistral AI fallback call using model: open-mistral-7b")
                 try:
                     content = self._call_provider_api("Mistral", self.mistral_api_url, mistral_key, "open-mistral-7b", messages_payload)
                     return content, "mistral/open-mistral-7b", search_query_used, search_results_list
-                except Exception as e_mis:
-                    logger.error(f"Mistral failover from Zhipu failed: {str(e_mis)}")
-
-            # Failover to OpenRouter if Mistral also fails
-            if api_key:
-                logger.info("Zhipu/Mistral failed. Attempting OpenRouter failover...")
-                try:
-                    content = self._call_provider_api("OpenRouter", self.api_url, api_key, "liquid/lfm-2.5-2.6b:free", messages_payload)
-                    return content, "liquid/lfm-2.5-2.6b:free", search_query_used, search_results_list
-                except Exception as e_or:
-                    logger.error(f"OpenRouter failover failed: {str(e_or)}")
-
-            # If all APIs fail, fallback to local generation
-            logger.warning(f"Free Tier Zhipu fallback to local responder. Last error: {last_error}")
-            fallback_content = self.get_local_fallback_response(message)
-            return fallback_content, "mock-local-fallback", search_query_used, search_results_list
-
-        # Phase 0.7: Premium Tier - Route to OpenRouter with round-robin model rotation and key rotation
-        if requested_model == "zydrakon-premium":
-            selected_model = self._get_next_openrouter_model()
-            logger.info(f"Attempting Premium Tier call to OpenRouter using model: {selected_model} and rotating key: {api_key[:12] if api_key else 'None'}...")
-            if api_key:
-                # 1. Try selected primary round-robin model
-                try:
-                    content = self._call_provider_api("OpenRouter", self.api_url, api_key, selected_model, messages_payload)
-                    return content, selected_model, search_query_used, search_results_list
                 except Exception as e:
-                    logger.error(f"Premium Tier OpenRouter call failed for {selected_model}: {str(e)}")
-                    last_error = f"OpenRouter ({selected_model}) error: {str(e)}"
-                    
-                    # 2. Iterate through all alternate OpenRouter models in pool to bypass 429 Rate Limit Exceeded
-                    for alt_model in self.openrouter_models:
-                        if alt_model == selected_model:
-                            continue
-                        logger.info(f"Attempting OpenRouter failover to alternate model: {alt_model}...")
-                        try:
-                            alt_key = self._get_next_api_key() or api_key
-                            content = self._call_provider_api("OpenRouter", self.api_url, alt_key, alt_model, messages_payload)
-                            return content, alt_model, search_query_used, search_results_list
-                        except Exception as alt_err:
-                            logger.error(f"OpenRouter failover failed for {alt_model}: {str(alt_err)}")
-                            last_error = f"OpenRouter failover ({alt_model}) error: {str(alt_err)}"
-
-                    # 3. Try openrouter/free auto-router
-                    logger.info("Attempting Premium Tier fallback call to OpenRouter using auto-router model: openrouter/free...")
-                    try:
-                        content = self._call_provider_api("OpenRouter", self.api_url, api_key, "openrouter/free", messages_payload)
-                        return content, "openrouter/free", search_query_used, search_results_list
-                    except Exception as e2:
-                        logger.error(f"Premium Tier OpenRouter fallback to openrouter/free failed: {str(e2)}")
-                        last_error = f"OpenRouter fallback (openrouter/free) error: {str(e2)}"
-            
-            # If OpenRouter and fallback fail, fall back to Mistral AI
-            mistral_key = self._get_next_mistral_key()
-            if mistral_key:
-                logger.info("Attempting Mistral AI fallback call using model: mistral-small-latest")
-                try:
-                    content = self._call_provider_api("Mistral", self.mistral_api_url, mistral_key, "mistral-small-latest", messages_payload)
-                    return content, "mistral/mistral-small-latest", search_query_used, search_results_list
-                except Exception as e:
-                    logger.error(f"Mistral AI fallback failed: {str(e)}")
+                    logger.error(f"Mistral AI call failed: {str(e)}")
                     last_error = f"Mistral AI error: {str(e)}"
 
-            # If everything fails, fallback to local generation
-            logger.warning(f"Premium Tier fallback to local responder. Last error: {last_error}")
+            # Phase 4c: Try fallback free models on OpenRouter (if key exists)
+            if api_key:
+                for model in FREE_MODELS:
+                    if model == requested_model:
+                        continue
+                    logger.info(f"Attempting OpenRouter fallback model: {model} using key: {api_key[:12]}...")
+                    try:
+                        content = self._call_provider_api("OpenRouter", self.api_url, api_key, model, messages_payload)
+                        return content, model, search_query_used, search_results_list
+                    except Exception as e:
+                        logger.error(f"OpenRouter fallback failed for {model}: {str(e)}")
+                        last_error = f"OpenRouter fallback ({model}) error: {str(e)}"
+
+            # If everything failed, fallback to local generation
+            logger.warning(f"All API calls failed. Falling back to local responder. Last error: {last_error}")
             fallback_content = self.get_local_fallback_response(message)
             return fallback_content, "mock-local-fallback", search_query_used, search_results_list
 
-        # Pro Tier - Proceed to OpenRouter with round-robin key rotation
-        # Phase 4a: Try requested model on OpenRouter
-        if api_key:
-            logger.info(f"Attempting OpenRouter call with model: {requested_model} using key: {api_key[:12]}...")
-            try:
-                content = self._call_provider_api("OpenRouter", self.api_url, api_key, requested_model, messages_payload)
-                return content, requested_model, search_query_used, search_results_list
-            except Exception as e:
-                logger.error(f"OpenRouter call failed for {requested_model}: {str(e)}")
-                last_error = f"OpenRouter ({requested_model}) error: {str(e)}"
-
-        # Phase 4b: Fallback to Mistral AI
-        mistral_key = self._get_next_mistral_key()
-        if mistral_key:
-            logger.info("Attempting Mistral AI fallback call using model: mistral-small-latest")
-            try:
-                content = self._call_provider_api("Mistral", self.mistral_api_url, mistral_key, "mistral-small-latest", messages_payload)
-                return content, "mistral/mistral-small-latest", search_query_used, search_results_list
-            except Exception as e:
-                logger.error(f"Mistral AI call failed: {str(e)}")
-                last_error = f"Mistral AI error: {str(e)}"
-
-        # Phase 4c: Try fallback free models on OpenRouter (if key exists)
-        if api_key:
-            for model in FREE_MODELS:
-                if model == requested_model:
-                    continue
-                logger.info(f"Attempting OpenRouter fallback model: {model} using key: {api_key[:12]}...")
-                try:
-                    content = self._call_provider_api("OpenRouter", self.api_url, api_key, model, messages_payload)
-                    return content, model, search_query_used, search_results_list
-                except Exception as e:
-                    logger.error(f"OpenRouter fallback failed for {model}: {str(e)}")
-                    last_error = f"OpenRouter fallback ({model}) error: {str(e)}"
-
-        # If everything failed, fallback to local generation
-        logger.warning(f"All API calls failed. Falling back to local responder. Last error: {last_error}")
-        fallback_content = self.get_local_fallback_response(message)
-        return fallback_content, "mock-local-fallback", search_query_used, search_results_list
+        except Exception as top_level_err:
+            logger.error(f"Unhandled exception in call_openrouter: {str(top_level_err)}", exc_info=True)
+            fallback_content = self.get_local_fallback_response(message)
+            return fallback_content, "mock-local-fallback", search_query_used, search_results_list
 
     def get_local_fallback_response(self, message: str) -> str:
         msg_lower = message.lower().strip()
