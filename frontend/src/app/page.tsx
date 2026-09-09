@@ -1006,7 +1006,7 @@ function formatMarkdownInline(text: string): React.ReactNode {
             </div>
           </div>
 
-          {/* Model Switcher & Agent Tag & Workspace Manager */}
+          {/* Top Actions: Workspaces Manager */}
           <div className="flex items-center gap-2 md:gap-3">
             <button
               onClick={() => setShowWorkspacesModal(true)}
@@ -1015,26 +1015,6 @@ function formatMarkdownInline(text: string): React.ReactNode {
               <Users className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Workspaces</span>
             </button>
-
-            <button
-              onClick={() => setShowAgentsPanel(true)}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs hover:border-zinc-700 transition-all cursor-pointer"
-            >
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: activeAgent.color }} />
-              <span className="text-zinc-300 font-medium">{activeAgent.name}</span>
-            </button>
-
-            <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-medium text-orange-400 focus:outline-none focus:border-orange-500 cursor-pointer"
-            >
-              {FREE_MODELS.map((m) => (
-                <option key={m.id} value={m.id} className="bg-zinc-900 text-zinc-200">
-                  {m.name}
-                </option>
-              ))}
-            </select>
           </div>
         </header>
 
@@ -1362,7 +1342,7 @@ function formatMarkdownInline(text: string): React.ReactNode {
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder={`Ask ${activeAgent.name} anything... (Shift+Enter for newline, ⌘K for commands)`}
+                    placeholder={`Ask ${activeAgent.name} anything... (Shift+Enter for newline)`}
                     rows={1}
                     className="w-full px-3 py-1.5 bg-transparent text-base md:text-lg text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none min-h-[44px] max-h-56 font-sans scrollbar-thin"
                   />
