@@ -26,7 +26,15 @@ import {
   GitBranch,
   Swords,
   Users,
-  UserPlus
+  UserPlus,
+  Command,
+  Brain,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  Code2,
+  Eye,
+  SlidersHorizontal
 } from "lucide-react";
 import { Message, Session, RateLimits, StorageStatus, Workspace, WorkspaceMember, WorkspaceMessage } from "@/lib/types";
 import { api, ApiError } from "@/lib/api";
@@ -47,6 +55,7 @@ import { LoginPage } from "@/components/LoginPage";
 import { ChangePasswordModal } from "@/components/ChangePasswordModal";
 import { WorkspacesModal } from "@/components/WorkspacesModal";
 import { RouteCard } from "@/components/RouteCard";
+import { CommandPalette } from "@/components/CommandPalette";
 
 const FREE_MODELS = [
   { id: "zydrakon-free", name: "Zydrakon AI (Free)" },
@@ -56,6 +65,8 @@ const FREE_MODELS = [
 
 function CodeBlock({ code, language }: { code: string; language: string }) {
   const [copied, setCopied] = useState(false);
+  const [viewMode, setViewMode] = useState<"code" | "preview">("code");
+  const isPreviewable = ["html", "svg", "xml"].includes(language?.toLowerCase() || "");
 
   const handleCopy = () => {
     navigator.clipboard.writeText(code);
@@ -64,23 +75,134 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
   };
 
   return (
-    <div className="my-4 rounded-xl overflow-hidden border border-zinc-800 shadow-md bg-[#050507]">
-      <div className="flex justify-between items-center bg-[#121215] px-4 py-2 text-xs text-zinc-400 font-mono border-b border-zinc-800/80 select-none">
-        <span>{language || "code"}</span>
+    <div className="my-4 rounded-2xl overflow-hidden border border-zinc-800 shadow-xl bg-[#050507]">
+      <div className="flex justify-between items-center bg-[#111116] px-4 py-2.5 text-xs text-zinc-400 font-mono border-b border-zinc-800/80 select-none">
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 mr-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500/80 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
+          </div>
+          <span className="text-[11px] font-semibold text-zinc-300 uppercase tracking-wider bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
+            {language || "code"}
+          </span>
+          {isPreviewable && (
+            <div className="flex items-center bg-zinc-950 rounded-lg p-0.5 border border-zinc-800 ml-1">
+              <button
+                type="button"
+                onClick={() => setViewMode("code")}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer ${
+                  viewMode === "code" ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                Code
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("preview")}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer ${
+                  viewMode === "preview" ? "bg-orange-600 text-white" : "text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                Preview
+              </button>
+            </div>
+          )}
+        </div>
+
         <button
           onClick={handleCopy}
-          className="hover:text-white transition-colors flex items-center gap-1 font-medium text-zinc-300"
+          className="hover:text-white transition-colors flex items-center gap-1.5 font-medium text-zinc-300 text-xs cursor-pointer p-1 px-2 rounded-lg hover:bg-zinc-800/60"
         >
           {copied ? (
-            <span className="text-emerald-400 flex items-center gap-1"><Check className="w-3 h-3"/> Copied!</span>
+            <span className="text-emerald-400 flex items-center gap-1"><Check className="w-3.5 h-3.5"/> Copied</span>
           ) : (
-            <span className="flex items-center gap-1"><Copy className="w-3 h-3"/> Copy code</span>
+            <span className="flex items-center gap-1"><Copy className="w-3.5 h-3.5"/> Copy</span>
           )}
         </button>
       </div>
-      <pre className="p-4 overflow-x-auto font-mono text-xs md:text-sm leading-relaxed scrollbar-thin text-zinc-200">
-        <code>{code}</code>
-      </pre>
+
+      {viewMode === "preview" && isPreviewable ? (
+        <div className="p-4 bg-white rounded-b-2xl min-h-[160px] flex items-center justify-center overflow-auto text-black">
+          {language.toLowerCase() === "svg" ? (
+            <div dangerouslySetInnerHTML={{ __html: code }} />
+          ) : (
+            <iframe
+              srcDoc={code}
+              sandbox="allow-scripts"
+              className="w-full min-h-[240px] border-none bg-white rounded"
+              title="Preview"
+            />
+          )}
+        </div>
+      ) : (
+        <pre className="p-4 overflow-x-auto font-mono text-xs md:text-sm leading-relaxed scrollbar-thin text-zinc-200 bg-[#050507]">
+          <code>{code}</code>
+        </pre>
+      )}
+    </div>
+  );
+}
+
+function ThinkingAccordion({ searchQuery, results }: { searchQuery?: string; results?: any[] }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="mb-4 rounded-2xl border border-zinc-800/80 bg-zinc-950/60 backdrop-blur-sm overflow-hidden transition-all shadow-sm">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-3.5 py-2.5 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40 transition-colors select-none cursor-pointer"
+      >
+        <div className="flex items-center gap-2 font-mono">
+          <Brain className="w-3.5 h-3.5 text-orange-400 shrink-0 animate-pulse" />
+          <span className="font-semibold text-zinc-300">
+            {searchQuery ? `Research: "${searchQuery}"` : "Reasoning & Deep Think Process"}
+          </span>
+          {results && results.length > 0 && (
+            <span className="text-[10px] bg-zinc-900 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-800 font-mono">
+              {results.length} sources analyzed
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1 text-zinc-500">
+          <span className="text-[10px] font-mono">{isOpen ? "Hide" : "Expand"}</span>
+          {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        </div>
+      </button>
+
+      {isOpen && (
+        <div className="px-4 py-3 border-t border-zinc-800/60 text-xs space-y-2.5 bg-black/40">
+          <p className="text-zinc-400 text-[11px] leading-relaxed">
+            Multi-pass analysis completed. Evidence extracted and synthesized into the verified answer below.
+          </p>
+          {results && results.length > 0 && (
+            <div className="space-y-1.5 pt-1">
+              <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider font-mono">
+                Verified Sources:
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                {results.map((res: any, idx: number) => (
+                  <a
+                    key={idx}
+                    href={res.url || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-xl bg-zinc-900/60 border border-zinc-800/80 hover:border-orange-500/40 hover:bg-zinc-900 text-left transition-all flex flex-col justify-between group"
+                  >
+                    <span className="font-medium text-zinc-300 group-hover:text-orange-400 truncate block text-[11px]">
+                      {res.title || res.url}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 font-mono truncate block mt-0.5">
+                      {res.url ? new URL(res.url).hostname : "web source"}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -137,6 +259,11 @@ export default function Home() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
+  // Command Palette & Prompt Bar States
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [isWebSearchActive, setIsWebSearchActive] = useState(false);
+  const [showModelDropdown, setShowModelDropdown] = useState(false);
+
   const loadWorkspaceMessages = async (wsId: string) => {
     try {
       const msgs = await api.getWorkspaceMessages(wsId);
@@ -165,6 +292,26 @@ export default function Home() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize prompt textarea dynamically as content grows
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 220)}px`;
+    }
+  }, [inputText]);
+
+  // Global Ctrl+K / Cmd+K Command Palette Keyboard Shortcut
+  useEffect(() => {
+    const handleGlobalKeys = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setShowCommandPalette((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleGlobalKeys);
+    return () => window.removeEventListener("keydown", handleGlobalKeys);
+  }, []);
 
   // Active agent
   const activeAgent = AGENTS.find((a) => a.id === selectedAgentId) || AGENTS[AGENTS.length - 1];
@@ -875,6 +1022,18 @@ function formatMarkdownInline(text: string): React.ReactNode {
           {/* Model Switcher & Agent Tag & Workspace Manager */}
           <div className="flex items-center gap-2 md:gap-3">
             <button
+              onClick={() => setShowCommandPalette(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 text-xs text-zinc-300 hover:text-white transition-all cursor-pointer shadow-sm"
+              title="Command Palette (Ctrl+K)"
+            >
+              <Search className="w-3.5 h-3.5 text-orange-400" />
+              <span className="hidden md:inline font-medium">Spotlight</span>
+              <kbd className="hidden sm:inline px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 font-mono text-[10px] text-zinc-400">
+                ⌘K
+              </kbd>
+            </button>
+
+            <button
               onClick={() => setShowWorkspacesModal(true)}
               className="px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20 text-blue-400 text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer"
             >
@@ -884,7 +1043,7 @@ function formatMarkdownInline(text: string): React.ReactNode {
 
             <button
               onClick={() => setShowAgentsPanel(true)}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs hover:border-zinc-700 transition-all"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs hover:border-zinc-700 transition-all cursor-pointer"
             >
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: activeAgent.color }} />
               <span className="text-zinc-300 font-medium">{activeAgent.name}</span>
@@ -1133,12 +1292,12 @@ function formatMarkdownInline(text: string): React.ReactNode {
                           : "w-full max-w-none bg-transparent text-zinc-100 p-0 shadow-none border-none"
                       }`}
                     >
-                      {/* Search Query Pill */}
-                      {msg.search_query && (
-                        <div className="mb-3 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800/80 text-xs md:text-sm text-orange-400">
-                          <Globe className="w-3.5 h-3.5 shrink-0" />
-                          <span>Searched: {msg.search_query}</span>
-                        </div>
+                      {/* Search Query & Thinking Process Accordion */}
+                      {(msg.search_query || (msg.search_results && msg.search_results.length > 0)) && (
+                        <ThinkingAccordion
+                          searchQuery={msg.search_query}
+                          results={msg.search_results}
+                        />
                       )}
 
                       {/* Render Message Body */}
@@ -1156,12 +1315,24 @@ function formatMarkdownInline(text: string): React.ReactNode {
 
                       {/* Interactive Actions Toolbar */}
                       {msg.id && !isLoading && !isStreamingMsg && (
-                        <div className={`mt-3 flex items-center gap-3 text-zinc-500 ${msg.role === 'user' ? 'justify-end' : 'justify-start'} select-none border-t border-zinc-900/60 pt-2`}>
+                        <div className={`mt-3 flex items-center gap-2 text-zinc-500 ${msg.role === 'user' ? 'justify-end' : 'justify-start'} select-none border-t border-zinc-900/60 pt-2`}>
+                          {/* Copy Message Button */}
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(msg.content);
+                            }}
+                            title="Copy message text"
+                            className="flex items-center gap-1.5 text-[10px] md:text-xs font-semibold hover:text-zinc-200 transition-colors p-1 px-2.5 rounded-lg bg-zinc-950/50 hover:bg-zinc-900 border border-zinc-900/80 hover:border-zinc-800 cursor-pointer shadow-sm"
+                          >
+                            <Copy className="w-3 h-3 shrink-0" />
+                            <span>Copy</span>
+                          </button>
+
                           {/* Replay Button */}
                           <button
                             onClick={() => handleReplay(msg.id)}
                             title="🔄 Replay (Regenerate answer)"
-                            className="flex items-center gap-1.5 text-[10px] md:text-xs font-semibold hover:text-orange-500 transition-colors p-1 px-2 rounded-lg bg-zinc-950/40 hover:bg-zinc-950 border border-zinc-900/80 hover:border-zinc-800 cursor-pointer shadow-sm"
+                            className="flex items-center gap-1.5 text-[10px] md:text-xs font-semibold hover:text-orange-500 transition-colors p-1 px-2.5 rounded-lg bg-zinc-950/50 hover:bg-zinc-900 border border-zinc-900/80 hover:border-zinc-800 cursor-pointer shadow-sm"
                           >
                             <RotateCcw className="w-3 h-3 shrink-0" />
                             <span>Replay</span>
@@ -1171,7 +1342,7 @@ function formatMarkdownInline(text: string): React.ReactNode {
                           <button
                             onClick={() => handleBranch(msg.id)}
                             title="🌿 Continue From Here (Start a new branch)"
-                            className="flex items-center gap-1.5 text-[10px] md:text-xs font-semibold hover:text-emerald-500 transition-colors p-1 px-2 rounded-lg bg-zinc-950/40 hover:bg-zinc-950 border border-zinc-900/80 hover:border-zinc-800 cursor-pointer shadow-sm"
+                            className="flex items-center gap-1.5 text-[10px] md:text-xs font-semibold hover:text-emerald-500 transition-colors p-1 px-2.5 rounded-lg bg-zinc-950/50 hover:bg-zinc-900 border border-zinc-900/80 hover:border-zinc-800 cursor-pointer shadow-sm"
                           >
                             <GitBranch className="w-3 h-3 shrink-0" />
                             <span>Branch</span>
@@ -1182,7 +1353,7 @@ function formatMarkdownInline(text: string): React.ReactNode {
                             <button
                               onClick={() => handleProveIt(msg.id)}
                               title="⚔️ Prove It (Analyze supporting/counter evidence)"
-                              className="flex items-center gap-1.5 text-[10px] md:text-xs font-semibold hover:text-blue-500 transition-colors p-1 px-2 rounded-lg bg-zinc-950/40 hover:bg-zinc-950 border border-zinc-900/80 hover:border-zinc-800 cursor-pointer shadow-sm"
+                              className="flex items-center gap-1.5 text-[10px] md:text-xs font-semibold hover:text-blue-500 transition-colors p-1 px-2.5 rounded-lg bg-zinc-950/50 hover:bg-zinc-900 border border-zinc-900/80 hover:border-zinc-800 cursor-pointer shadow-sm"
                             >
                               <Swords className="w-3 h-3 shrink-0" />
                               <span>Prove It</span>
@@ -1206,34 +1377,134 @@ function formatMarkdownInline(text: string): React.ReactNode {
               </div>
             </div>
 
-            {/* Claude-Style Floating Chat Input Box */}
+            {/* Perplexity/Cursor-Style Floating Prompt Bar */}
             <div className="p-4 md:pb-6 bg-transparent flex flex-col items-center">
               <div className="w-full max-w-4xl mx-auto flex flex-col gap-2">
-                <div className="relative flex items-end bg-[#09090b] border border-zinc-800/90 hover:border-zinc-700/80 rounded-3xl p-3 focus-within:border-orange-500/60 focus-within:ring-1 focus-within:ring-orange-500/30 transition-all shadow-2xl">
+                <div className="relative flex flex-col bg-[#09090b]/90 backdrop-blur-2xl border border-zinc-800/90 hover:border-zinc-700/80 rounded-3xl p-3 focus-within:border-orange-500/60 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all shadow-[0_12px_45px_rgba(0,0,0,0.7)]">
+                  {/* Textarea */}
                   <textarea
                     ref={textareaRef}
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder={`Ask ${activeAgent.name} anything... (Shift+Enter for new line)`}
+                    placeholder={`Ask ${activeAgent.name} anything... (Shift+Enter for newline, ⌘K for commands)`}
                     rows={1}
-                    className="w-full px-3 py-1.5 bg-transparent text-base md:text-lg text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none max-h-48 font-sans"
+                    className="w-full px-3 py-1.5 bg-transparent text-base md:text-lg text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none min-h-[44px] max-h-56 font-sans scrollbar-thin"
                   />
 
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={!inputText.trim() || isLoading || isStreamingMsg}
-                    className="p-2.5 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white disabled:opacity-20 disabled:hover:bg-orange-600 transition-all shrink-0 cursor-pointer shadow-md shadow-orange-950/40 mb-0.5"
-                  >
-                    <Send className="w-4 h-4" />
-                  </button>
+                  {/* Embedded Controls Bar inside Prompt Dock */}
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-850/60 mt-1 select-none">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {/* Model Selector Pill */}
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowModelDropdown(!showModelDropdown)}
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-xs font-medium text-zinc-300 hover:text-white transition-all cursor-pointer"
+                        >
+                          <Zap className="w-3.5 h-3.5 text-orange-400" />
+                          <span>{FREE_MODELS.find(m => m.id === selectedModel)?.name.replace("Zydrakon AI", "Zydrakon") || "Model"}</span>
+                          <ChevronDown className="w-3 h-3 text-zinc-500" />
+                        </button>
+
+                        {showModelDropdown && (
+                          <div className="absolute bottom-full left-0 mb-2 w-56 bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-1.5 space-y-1 z-20 animate-panelSlideUp">
+                            {FREE_MODELS.map((m) => (
+                              <button
+                                key={m.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedModel(m.id);
+                                  setShowModelDropdown(false);
+                                }}
+                                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                                  selectedModel === m.id
+                                    ? "bg-orange-500/20 text-orange-300 border border-orange-500/30"
+                                    : "text-zinc-300 hover:bg-zinc-900"
+                                }`}
+                              >
+                                <span>{m.name}</span>
+                                {selectedModel === m.id && <Check className="w-3.5 h-3.5 text-orange-400" />}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Deep Thinking Toggle Chip */}
+                      <button
+                        type="button"
+                        onClick={() => setThinkingMode(!thinkingMode)}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-medium transition-all cursor-pointer border ${
+                          thinkingMode
+                            ? "bg-purple-500/20 text-purple-300 border-purple-500/40 shadow-sm shadow-purple-500/20"
+                            : "bg-zinc-900/60 text-zinc-400 border-zinc-800/80 hover:text-zinc-200 hover:bg-zinc-850"
+                        }`}
+                        title="Toggle Deep Reasoning mode"
+                      >
+                        <Brain className={`w-3.5 h-3.5 ${thinkingMode ? "text-purple-400 animate-pulse" : "text-zinc-500"}`} />
+                        <span>Deep Think</span>
+                      </button>
+
+                      {/* Web Search Toggle Chip */}
+                      <button
+                        type="button"
+                        onClick={() => setIsWebSearchActive(!isWebSearchActive)}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-medium transition-all cursor-pointer border ${
+                          isWebSearchActive
+                            ? "bg-orange-500/20 text-orange-300 border-orange-500/40 shadow-sm shadow-orange-500/20"
+                            : "bg-zinc-900/60 text-zinc-400 border-zinc-800/80 hover:text-zinc-200 hover:bg-zinc-850"
+                        }`}
+                        title="Live web search enhancement"
+                      >
+                        <Globe className={`w-3.5 h-3.5 ${isWebSearchActive ? "text-orange-400 animate-spin" : "text-zinc-500"}`} />
+                        <span>Web Search</span>
+                      </button>
+
+                      {/* Agent Badge */}
+                      <button
+                        type="button"
+                        onClick={() => setShowAgentsPanel(true)}
+                        className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-xl bg-zinc-900/60 hover:bg-zinc-850 border border-zinc-800/80 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-all cursor-pointer"
+                        title="Change AI Agent Persona"
+                      >
+                        <Bot className="w-3.5 h-3.5 text-blue-400" />
+                        <span>{activeAgent.name.split(" ")[0]}</span>
+                      </button>
+                    </div>
+
+                    {/* Right side: Command palette trigger + Send button */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setShowCommandPalette(true)}
+                        className="hidden md:flex items-center gap-1 px-2 py-1 rounded-lg bg-zinc-900 text-zinc-500 hover:text-zinc-300 text-[10px] font-mono border border-zinc-800 transition-colors cursor-pointer"
+                        title="Open Spotlight Command Palette"
+                      >
+                        <Command className="w-3 h-3 text-orange-400" />
+                        <span>⌘K</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleSendMessage}
+                        disabled={!inputText.trim() || isLoading || isStreamingMsg}
+                        className="p-2.5 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white disabled:opacity-25 disabled:hover:from-orange-600 disabled:hover:to-amber-500 transition-all cursor-pointer shadow-md shadow-orange-950/40"
+                        title="Send prompt"
+                      >
+                        <Send className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between text-[11px] text-zinc-500 px-3">
-                  <span>Press Enter to send message</span>
+                  <div className="flex items-center gap-3">
+                    <span>Press <strong className="text-zinc-400">Enter</strong> to send, <strong className="text-zinc-400">Shift+Enter</strong> for newline</span>
+                  </div>
                   {limits && (
-                    <span>
-                      Daily: {limits.daily_remaining}/{limits.daily_limit}
+                    <span className="font-mono">
+                      Daily Requests: {limits.daily_remaining}/{limits.daily_limit}
                     </span>
                   )}
                 </div>
@@ -1279,6 +1550,26 @@ function formatMarkdownInline(text: string): React.ReactNode {
           }
         }}
         currentUser={currentUser}
+      />
+
+      {/* Spotlight Command Palette (Ctrl+K) */}
+      <CommandPalette
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        onNewChat={() => {
+          setMainView("chat");
+          handleNewSession();
+        }}
+        onSelectModel={(modelId) => setSelectedModel(modelId)}
+        onSwitchView={(view) => setMainView(view)}
+        onOpenAdmin={() => {
+          window.location.href = "/admin";
+        }}
+        onOpenAgents={() => setShowAgentsPanel(true)}
+        onOpenWorkspaces={() => setShowWorkspacesModal(true)}
+        onOpenChangePassword={() => setShowChangePasswordModal(true)}
+        onClearHistory={handleDeleteAllSessions}
+        currentModel={selectedModel}
       />
     </div>
   );
