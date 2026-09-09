@@ -55,7 +55,6 @@ import { LoginPage } from "@/components/LoginPage";
 import { ChangePasswordModal } from "@/components/ChangePasswordModal";
 import { WorkspacesModal } from "@/components/WorkspacesModal";
 import { RouteCard } from "@/components/RouteCard";
-import { CommandPalette } from "@/components/CommandPalette";
 
 const FREE_MODELS = [
   { id: "zydrakon-free", name: "Zydrakon AI (Free)" },
@@ -259,8 +258,7 @@ export default function Home() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
-  // Command Palette & Prompt Bar States
-  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  // Prompt Bar States
   const [isWebSearchActive, setIsWebSearchActive] = useState(false);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
 
@@ -301,17 +299,6 @@ export default function Home() {
     }
   }, [inputText]);
 
-  // Global Ctrl+K / Cmd+K Command Palette Keyboard Shortcut
-  useEffect(() => {
-    const handleGlobalKeys = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setShowCommandPalette((prev) => !prev);
-      }
-    };
-    window.addEventListener("keydown", handleGlobalKeys);
-    return () => window.removeEventListener("keydown", handleGlobalKeys);
-  }, []);
 
   // Active agent
   const activeAgent = AGENTS.find((a) => a.id === selectedAgentId) || AGENTS[AGENTS.length - 1];
@@ -1022,18 +1009,6 @@ function formatMarkdownInline(text: string): React.ReactNode {
           {/* Model Switcher & Agent Tag & Workspace Manager */}
           <div className="flex items-center gap-2 md:gap-3">
             <button
-              onClick={() => setShowCommandPalette(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 text-xs text-zinc-300 hover:text-white transition-all cursor-pointer shadow-sm"
-              title="Command Palette (Ctrl+K)"
-            >
-              <Search className="w-3.5 h-3.5 text-orange-400" />
-              <span className="hidden md:inline font-medium">Spotlight</span>
-              <kbd className="hidden sm:inline px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 font-mono text-[10px] text-zinc-400">
-                ⌘K
-              </kbd>
-            </button>
-
-            <button
               onClick={() => setShowWorkspacesModal(true)}
               className="px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20 text-blue-400 text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer"
             >
@@ -1473,18 +1448,8 @@ function formatMarkdownInline(text: string): React.ReactNode {
                       </button>
                     </div>
 
-                    {/* Right side: Command palette trigger + Send button */}
+                    {/* Right side: Send button */}
                     <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setShowCommandPalette(true)}
-                        className="hidden md:flex items-center gap-1 px-2 py-1 rounded-lg bg-zinc-900 text-zinc-500 hover:text-zinc-300 text-[10px] font-mono border border-zinc-800 transition-colors cursor-pointer"
-                        title="Open Spotlight Command Palette"
-                      >
-                        <Command className="w-3 h-3 text-orange-400" />
-                        <span>⌘K</span>
-                      </button>
-
                       <button
                         type="button"
                         onClick={handleSendMessage}
@@ -1550,26 +1515,6 @@ function formatMarkdownInline(text: string): React.ReactNode {
           }
         }}
         currentUser={currentUser}
-      />
-
-      {/* Spotlight Command Palette (Ctrl+K) */}
-      <CommandPalette
-        isOpen={showCommandPalette}
-        onClose={() => setShowCommandPalette(false)}
-        onNewChat={() => {
-          setMainView("chat");
-          handleNewSession();
-        }}
-        onSelectModel={(modelId) => setSelectedModel(modelId)}
-        onSwitchView={(view) => setMainView(view)}
-        onOpenAdmin={() => {
-          window.location.href = "/admin";
-        }}
-        onOpenAgents={() => setShowAgentsPanel(true)}
-        onOpenWorkspaces={() => setShowWorkspacesModal(true)}
-        onOpenChangePassword={() => setShowChangePasswordModal(true)}
-        onClearHistory={handleDeleteAllSessions}
-        currentModel={selectedModel}
       />
     </div>
   );
