@@ -64,8 +64,8 @@ const FREE_MODELS = [
 
 function CodeBlock({ code, language }: { code: string; language: string }) {
   const [copied, setCopied] = useState(false);
-  const [viewMode, setViewMode] = useState<"code" | "preview">("code");
   const isPreviewable = ["html", "svg", "xml"].includes(language?.toLowerCase() || "");
+  const [viewMode, setViewMode] = useState<"code" | "preview">(isPreviewable ? "preview" : "code");
 
   const handleCopy = () => {
     navigator.clipboard.writeText(code);

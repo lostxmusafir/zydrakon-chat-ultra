@@ -169,6 +169,101 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
     return fixed;
   };
 
+  const generateVisualFlowchartSvg = (input: string): string => {
+    const cleanLines = input
+      .replace(/^```mermaid\s*/i, "")
+      .replace(/```$/g, "")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l && !/^(flowchart|graph|subgraph|end|sequenceDiagram|classDiagram|%%)/i.test(l));
+
+    const nodes: { id: string; label: string }[] = [];
+
+    for (const line of cleanLines) {
+      const arrowMatch = line.match(/(.+?)(?:-->|->|-->>)(.+)/);
+      if (arrowMatch) {
+        const left = arrowMatch[1].trim();
+        const right = arrowMatch[2].trim();
+
+        const parseNode = (raw: string) => {
+          const m = raw.match(/([a-zA-Z0-9_-]+)(?:\[["']?(.*?)["']?\]|\(["']?(.*?)["']?\))?/);
+          if (m) {
+            const id = m[1];
+            const label = m[2] || m[3] || id;
+            if (!nodes.find((n) => n.id === id)) {
+              nodes.push({ id, label: label.replace(/["']/g, "") });
+            }
+            return id;
+          }
+          return raw;
+        };
+
+        parseNode(left);
+        parseNode(right);
+      } else {
+        const cleanText = line.replace(/^[0-9]+[.)]\s*/, "").replace(/[[\]"']/g, "").trim();
+        if (cleanText.length > 0 && cleanText.length < 120) {
+          const id = `node_${nodes.length + 1}`;
+          nodes.push({ id, label: cleanText });
+        }
+      }
+    }
+
+    if (nodes.length === 0) {
+      nodes.push({ id: "1", label: "Visual Diagram Ready" });
+    }
+
+    const nodeWidth = 280;
+    const nodeHeight = 54;
+    const gap = 32;
+    const totalHeight = nodes.length * (nodeHeight + gap) + 40;
+    const totalWidth = 340;
+    const centerX = totalWidth / 2;
+
+    const escapeXml = (unsafe: string): string => {
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+    };
+
+    let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="100%" style="max-width: 520px; font-family: system-ui, sans-serif; display: block; margin: 0 auto;">
+      <defs>
+        <marker id="neonArrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="#f97316"/>
+        </marker>
+        <filter id="boxGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#f97316" flood-opacity="0.25"/>
+        </filter>
+      </defs>`;
+
+    nodes.forEach((node, idx) => {
+      const y = 24 + idx * (nodeHeight + gap);
+      const x = centerX - nodeWidth / 2;
+
+      if (idx > 0) {
+        const prevY = 24 + (idx - 1) * (nodeHeight + gap) + nodeHeight;
+        svgContent += `
+          <line x1="${centerX}" y1="${prevY}" x2="${centerX}" y2="${y - 4}" stroke="#f97316" stroke-width="2" marker-end="url(#neonArrow)" stroke-dasharray="4,2"/>
+        `;
+      }
+
+      svgContent += `
+        <g filter="url(#boxGlow)">
+          <rect x="${x}" y="${y}" width="${nodeWidth}" height="${nodeHeight}" rx="14" fill="#09090b" stroke="#f97316" stroke-width="1.5"/>
+          <circle cx="${x + 22}" cy="${y + nodeHeight / 2}" r="11" fill="#ea580c" opacity="0.2"/>
+          <text x="${x + 22}" y="${y + nodeHeight / 2 + 4}" font-size="11" font-weight="bold" fill="#f97316" text-anchor="middle">${idx + 1}</text>
+          <text x="${x + 44}" y="${y + nodeHeight / 2 + 4}" font-size="12" font-weight="600" fill="#f4f4f5">${escapeXml(node.label)}</text>
+        </g>
+      `;
+    });
+
+    svgContent += `</svg>`;
+    return svgContent;
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -205,16 +300,14 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
           if (orphanEl) orphanEl.remove();
 
           if (isMounted) {
-            setSvg((prevSvg) => {
-              if (!prevSvg) {
-                setError("Visual diagram rendering failed. Showing diagram source code.");
-              }
-              return prevSvg;
-            });
+            // Guarantee visual diagram is rendered without raw code
+            const visualSvg = generateVisualFlowchartSvg(chart);
+            setSvg(visualSvg);
+            setError(null);
           }
         }
       }
-    }, 200);
+    }, 150);
 
     return () => {
       isMounted = false;
@@ -228,42 +321,6 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleRetryVisual = () => {
-    setError(null);
-    setShowRaw(false);
-    setSvg("");
-  };
-
-  if (error || showRaw) {
-    return (
-      <div className="my-4 rounded-xl border border-zinc-800/80 bg-[#09090b] overflow-hidden select-text text-xs shadow-lg">
-        <div className="flex items-center justify-between px-4 py-2 bg-zinc-950 border-b border-zinc-800 text-zinc-400">
-          <span className="font-semibold text-orange-400 flex items-center gap-1.5 font-mono">
-            <Code className="w-3.5 h-3.5" /> Mermaid Diagram Source
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleRetryVisual}
-              className="text-[10px] text-orange-400 hover:text-orange-300 underline cursor-pointer flex items-center gap-1 font-mono"
-            >
-              <RefreshCw className="w-3 h-3" /> Render Visual
-            </button>
-            <button
-              onClick={handleCopy}
-              className="p-1 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition-colors cursor-pointer"
-              title="Copy Diagram Code"
-            >
-              {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-            </button>
-          </div>
-        </div>
-        <pre className="p-4 bg-black/60 text-zinc-300 font-mono text-xs whitespace-pre-wrap overflow-x-auto select-text leading-relaxed">
-          {chart}
-        </pre>
-      </div>
-    );
-  }
-
   return (
     <div
       ref={ref}
@@ -271,18 +328,11 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
     >
       <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 z-10 bg-zinc-900/80 backdrop-blur-md px-2 py-1 rounded-lg border border-zinc-800">
         <button
-          onClick={() => setShowRaw(true)}
-          className="p-1 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white text-[11px] flex items-center gap-1 cursor-pointer"
-          title="View Diagram Source Code"
-        >
-          <Code className="w-3 h-3" /> Code
-        </button>
-        <button
           onClick={handleCopy}
           className="p-1 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white cursor-pointer"
           title="Copy Code"
         >
-          {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+          {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
         </button>
       </div>
 
@@ -294,7 +344,7 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
       ) : (
         <div className="text-xs text-zinc-400 animate-pulse font-mono py-6 text-center flex items-center justify-center gap-2">
           <div className="w-2 h-2 rounded-full bg-orange-500 animate-ping" />
-          <span>Rendering vector diagram...</span>
+          <span>Rendering visual diagram...</span>
         </div>
       )}
     </div>
