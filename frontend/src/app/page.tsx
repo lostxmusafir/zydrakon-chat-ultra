@@ -263,6 +263,7 @@ export default function Home() {
     try {
       const alreadySeen = localStorage.getItem(`zydrakon_tier_welcome_${userKey}`);
       if (!alreadySeen) {
+        localStorage.setItem(`zydrakon_tier_welcome_${userKey}`, "true");
         setTierWelcomeUser(user);
         setShowTierWelcomeModal(true);
       }
