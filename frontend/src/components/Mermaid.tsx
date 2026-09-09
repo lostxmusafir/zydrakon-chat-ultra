@@ -127,11 +127,18 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
         return `${id}{${text}}:::cPink`;
       });
 
-      // 2. Rectangles and other shapes get assigned in balanced sequence
-      cleaned = cleaned.replace(/([A-Za-z0-9_-]+)\s*(\[|\()([^\]\)]+)(\]|\))(?!:::)/g, (match, id, open, text, close) => {
+      // 2. Rectangles [ ... ] safely matched without breaking on inner parens
+      cleaned = cleaned.replace(/([A-Za-z0-9_-]+)\s*\[([^\]]+)\](?!:::)/g, (match, id, text) => {
         const assignedClass = paletteCycle[cycleIdx % paletteCycle.length];
         cycleIdx++;
-        return `${id}${open}${text}${close}:::${assignedClass}`;
+        return `${id}[${text}]:::${assignedClass}`;
+      });
+
+      // 3. Rounded nodes ( ... ) safely matched only when standalone
+      cleaned = cleaned.replace(/(?<!\[)(?:^|\s+)([A-Za-z0-9_-]+)\s*\(([^)]+)\)(?!:::)/g, (match, id, text) => {
+        const assignedClass = paletteCycle[cycleIdx % paletteCycle.length];
+        cycleIdx++;
+        return ` ${id}(${text}):::${assignedClass}`;
       });
     }
 
@@ -312,6 +319,9 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
       nodes.push({ id: "1", title: "Workflow Ready", details: [] });
     }
 
+    // Keep visual flowchart compact (maximum 7 key stages to prevent endless vertical towers)
+    const displayNodes = nodes.slice(0, 7);
+
     const nodeWidth = 400;
     const gap = 36;
     const totalWidth = 460;
@@ -336,7 +346,7 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
       { bg: "#6EE7B7", border: "#18181B" }  // Mint Green
     ];
 
-    const nodeHeights = nodes.map((n) => Math.max(56, 36 + (n.details.length > 0 ? n.details.length * 20 : 0)));
+    const nodeHeights = displayNodes.map((n) => Math.max(56, 36 + (n.details.length > 0 ? n.details.length * 20 : 0)));
     let totalHeight = 40;
     nodeHeights.forEach((h) => {
       totalHeight += h + gap;
@@ -354,7 +364,7 @@ export default function Mermaid({ chart, isDarkMode = true }: MermaidProps) {
 
     let currentY = 24;
 
-    nodes.forEach((node, idx) => {
+    displayNodes.forEach((node, idx) => {
       const h = nodeHeights[idx];
       const y = currentY;
       const x = centerX - nodeWidth / 2;
