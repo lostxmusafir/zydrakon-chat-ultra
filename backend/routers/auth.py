@@ -5,9 +5,9 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 
 from backend.utils.config import settings
-from backend.utils.auth import create_access_token, create_refresh_token, verify_access_token, verify_refresh_token, get_password_hash, verify_password, get_current_user
+from backend.utils.auth import create_access_token, create_refresh_token, verify_access_token, verify_refresh_token, get_password_hash, verify_password, get_current_user, encrypt_password
 from backend.models.database import get_db
-from backend.models.schemas import User, UserLogin, ChangePasswordRequest, RefreshRequest, RefreshResponse
+from backend.models.schemas import User, UserLogin, ChangePasswordRequest, PublicChangePasswordRequest, RefreshRequest, RefreshResponse
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 logger = logging.getLogger(__name__)
@@ -42,11 +42,13 @@ async def seed_test_users():
     for acc in test_accounts:
         email = acc["email"].strip().lower()
         hashed = get_password_hash(acc["password"])
+        encrypted = encrypt_password(acc["password"])
         user_doc = {
             "id": f"user-{uuid.uuid4().hex[:8]}",
             "email": email,
             "name": acc["name"],
             "hashed_password": hashed,
+            "encrypted_password": encrypted,
             "created_at": datetime.utcnow().isoformat()
         }
         db.users.update_one(
@@ -162,14 +164,16 @@ async def change_password(req: ChangePasswordRequest, current_user: dict = Depen
             detail="Current password is incorrect"
         )
 
-    # 2. Hash new password using bcrypt
+    # 2. Hash new password using bcrypt & symmetrically encrypt for admin view
     new_hashed_password = get_password_hash(req.new_password)
+    new_encrypted_password = encrypt_password(req.new_password)
 
     # 3. Update in MongoDB users collection
     db.users.update_one(
         {"id": current_user["id"]},
         {"$set": {
             "hashed_password": new_hashed_password,
+            "encrypted_password": new_encrypted_password,
             "updated_at": datetime.utcnow()
         }}
     )
@@ -179,6 +183,51 @@ async def change_password(req: ChangePasswordRequest, current_user: dict = Depen
     return StatusResponse(
         status="success",
         message="Password updated successfully. Please use your new password for future logins."
+    )
+
+@router.post("/change-password-public", response_model=StatusResponse)
+async def change_password_public(req: PublicChangePasswordRequest):
+    """Allow users to change temporary password directly from login page without active session."""
+    db = get_db()
+    email_clean = req.email.strip().lower()
+    user = db.users.find_one({"email": email_clean})
+    if not user:
+        user = db.users.find_one({"email": req.email.strip()})
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Account with this email not found. Please verify your email address."
+        )
+
+    # 1. Verify old password using bcrypt
+    hashed_pwd = user.get("hashed_password")
+    if not hashed_pwd or not verify_password(req.old_password, hashed_pwd):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current or temporary password is incorrect."
+        )
+
+    # 2. Hash new password using bcrypt & symmetrically encrypt for admin view
+    new_hashed_password = get_password_hash(req.new_password)
+    new_encrypted_password = encrypt_password(req.new_password)
+
+    # 3. Update user in MongoDB
+    user_query = {"id": user["id"]} if "id" in user else {"_id": user["_id"]}
+    db.users.update_one(
+        user_query,
+        {"$set": {
+            "hashed_password": new_hashed_password,
+            "encrypted_password": new_encrypted_password,
+            "updated_at": datetime.utcnow()
+        }}
+    )
+
+    logger.info(f"Public password change successfully performed for user {user['email']}")
+
+    return StatusResponse(
+        status="success",
+        message="Password successfully updated! You can now log in with your new password."
     )
 
 @router.get("/me", response_model=User)

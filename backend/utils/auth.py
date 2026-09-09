@@ -10,6 +10,9 @@ from backend.models.database import get_db
 
 logger = logging.getLogger(__name__)
 
+import base64
+import hashlib
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer(auto_error=False)
 
@@ -18,6 +21,54 @@ def verify_password(plain_password, hashed_password):
 
 def get_password_hash(password):
     return pwd_context.hash(password)
+
+def _get_fernet():
+    try:
+        from cryptography.fernet import Fernet
+        key = base64.urlsafe_b64encode(hashlib.sha256(settings.JWT_SECRET.encode("utf-8")).digest())
+        return Fernet(key)
+    except Exception as e:
+        logger.debug(f"Fernet unavailable or error: {e}")
+        return None
+
+def encrypt_password(plain_password: str) -> str:
+    """Encrypt password symmetrically for admin view while MongoDB stores cipher."""
+    if not plain_password:
+        return ""
+    f = _get_fernet()
+    if f:
+        try:
+            return f.encrypt(plain_password.encode("utf-8")).decode("utf-8")
+        except Exception as e:
+            logger.error(f"Fernet password encryption failed: {e}")
+    # Pure-python keyed stream cipher fallback
+    raw = plain_password.encode("utf-8")
+    key_bytes = hashlib.sha256(settings.JWT_SECRET.encode("utf-8")).digest()
+    xored = bytes([b ^ key_bytes[i % len(key_bytes)] for i, b in enumerate(raw)])
+    return "pyenc:" + base64.urlsafe_b64encode(xored).decode("utf-8")
+
+def decrypt_password(cipher_text: str) -> str:
+    """Decrypt cipher text back to plain password for admin view."""
+    if not cipher_text:
+        return ""
+    if cipher_text.startswith("pyenc:"):
+        try:
+            raw_b64 = cipher_text[6:]
+            xored = base64.urlsafe_b64decode(raw_b64.encode("utf-8"))
+            key_bytes = hashlib.sha256(settings.JWT_SECRET.encode("utf-8")).digest()
+            plain = bytes([b ^ key_bytes[i % len(key_bytes)] for i, b in enumerate(xored)])
+            return plain.decode("utf-8")
+        except Exception as e:
+            logger.error(f"Fallback password decryption failed: {e}")
+            return ""
+    f = _get_fernet()
+    if f:
+        try:
+            return f.decrypt(cipher_text.encode("utf-8")).decode("utf-8")
+        except Exception as e:
+            logger.error(f"Fernet password decryption failed: {e}")
+            return ""
+    return ""
 
 def create_access_token(data: dict) -> str:
     """Create a JWT Access Token with a 60-minute expiry."""

@@ -23,23 +23,18 @@ class OpenRouterClient:
         self.api_key_index = 0
         self.mistral_api_url = f"{settings.MISTRAL_BASE_URL}/chat/completions"
         self.mistral_key_index = 0
-        self.mistral_model_index = 0
-        self.mistral_models = ["mistral-small-latest", "open-mistral-7b"]
+        self.mistral_models = ["open-mistral-7b", "mistral-small-latest"]
         self.zhipu_api_url = f"{settings.ZHIPU_BASE_URL}/chat/completions"
         self.zhipu_key_index = 0
         self.zhipu_model_index = 0
-        self.zhipu_models = ["glm-4-flash", "glm-4-flashx"]
+        self.zhipu_models = ["glm-4.5-air", "glm-5.3-flash", "glm-4-flash"]
         self.openrouter_model_index = 0
         self.openrouter_models = [
-            "meta-llama/llama-3-8b-instruct:free",
-            "google/gemma-2-9b-it:free",
-            "mistralai/mistral-7b-instruct:free",
-            "qwen/qwen-2.5-7b-instruct:free",
-            "z-ai/glm-5.2:free",
-            "openai/gpt-oss-20b:free",
-            "nvidia/nemotron-nano-12b-2-vl:free",
-            "deepseek/deepseek-v4-flash",
-            "poolside/laguna-m.1:free"
+            "liquid/lfm-2.5-2.6b:free",
+            "nvidia/nemotron-3.5-lightning:free",
+            "poolside/laguna-s-2.1:free",
+            "nex-agi/nex-n2.5-mini:free",
+            "nex-agi/nex-n2.5-pro:free"
         ]
 
     def _get_next_mistral_model(self) -> str:
@@ -124,7 +119,7 @@ class OpenRouterClient:
         if api_key:
             try:
                 # Use a fast model for query translation
-                query_model = "meta-llama/llama-3-8b-instruct:free"
+                query_model = "liquid/lfm-2.5-2.6b:free"
                 return self._call_provider_api("OpenRouter", self.api_url, api_key, query_model, messages)
             except Exception as e:
                 logger.error(f"OpenRouter query generation call failed using key prefix {api_key[:12]}: {str(e)}")
@@ -291,8 +286,8 @@ class OpenRouterClient:
             if api_key:
                 logger.info("Mistral/Zhipu failed. Attempting OpenRouter failover...")
                 try:
-                    content = self._call_provider_api("OpenRouter", self.api_url, api_key, "meta-llama/llama-3-8b-instruct:free", messages_payload)
-                    return content, "meta-llama/llama-3-8b-instruct:free", search_query_used, search_results_list
+                    content = self._call_provider_api("OpenRouter", self.api_url, api_key, "liquid/lfm-2.5-2.6b:free", messages_payload)
+                    return content, "liquid/lfm-2.5-2.6b:free", search_query_used, search_results_list
                 except Exception as e_or:
                     logger.error(f"OpenRouter failover failed: {str(e_or)}")
 
@@ -325,7 +320,26 @@ class OpenRouterClient:
                             logger.error(f"Free Tier Zhipu fallback failed for {fallback_model}: {str(e2)}")
                             last_error = f"Zhipu fallback ({fallback_model}) error: {str(e2)}"
             
-            # If Zhipu fails or is not configured, fallback to local generation
+            # Failover to Mistral AI if Zhipu has insufficient balance
+            mistral_key = self._get_next_mistral_key()
+            if mistral_key:
+                logger.info("Zhipu failed. Attempting Mistral AI failover...")
+                try:
+                    content = self._call_provider_api("Mistral", self.mistral_api_url, mistral_key, "open-mistral-7b", messages_payload)
+                    return content, "mistral/open-mistral-7b", search_query_used, search_results_list
+                except Exception as e_mis:
+                    logger.error(f"Mistral failover from Zhipu failed: {str(e_mis)}")
+
+            # Failover to OpenRouter if Mistral also fails
+            if api_key:
+                logger.info("Zhipu/Mistral failed. Attempting OpenRouter failover...")
+                try:
+                    content = self._call_provider_api("OpenRouter", self.api_url, api_key, "liquid/lfm-2.5-2.6b:free", messages_payload)
+                    return content, "liquid/lfm-2.5-2.6b:free", search_query_used, search_results_list
+                except Exception as e_or:
+                    logger.error(f"OpenRouter failover failed: {str(e_or)}")
+
+            # If all APIs fail, fallback to local generation
             logger.warning(f"Free Tier Zhipu fallback to local responder. Last error: {last_error}")
             fallback_content = self.get_local_fallback_response(message)
             return fallback_content, "mock-local-fallback", search_query_used, search_results_list

@@ -6,7 +6,7 @@ from pathlib import Path
 # Add backend parent path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from backend.utils.auth import get_password_hash
+from backend.utils.auth import get_password_hash, encrypt_password
 from backend.models.database import get_db
 
 def create_users():
@@ -29,12 +29,14 @@ def create_users():
     for acc in test_accounts:
         email = acc["email"].strip().lower()
         hashed = get_password_hash(acc["password"])
+        encrypted = encrypt_password(acc["password"])
         
         user_doc = {
             "id": f"user-{uuid.uuid4().hex[:8]}",
             "email": email,
             "name": acc["name"],
             "hashed_password": hashed,
+            "encrypted_password": encrypted,
             "created_at": datetime.utcnow().isoformat()
         }
         

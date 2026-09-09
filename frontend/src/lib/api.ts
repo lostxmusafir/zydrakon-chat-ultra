@@ -185,6 +185,14 @@ class ApiClient {
     });
   }
 
+  async changePasswordPublic(data: { email: string; old_password: string; new_password: string }): Promise<{ status: string; message: string }> {
+    return this.request<{ status: string; message: string }>("/api/auth/change-password-public", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+  }
+
   async getAdminUsers(): Promise<any[]> {
     return this.request<any[]>("/api/admin/users");
   }

@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel, EmailStr, Field
 
 from backend.models.database import get_db
-from backend.utils.auth import get_current_admin, get_password_hash
+from backend.utils.auth import get_current_admin, get_password_hash, encrypt_password, decrypt_password
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 logger = logging.getLogger(__name__)
@@ -19,6 +19,7 @@ class AdminUserResponse(BaseModel):
     role: Optional[str] = "user"
     tier: Optional[str] = "free"
     created_at: Optional[str] = None
+    password: Optional[str] = None
 
 class AdminUserCreate(BaseModel):
     email: EmailStr
@@ -45,19 +46,22 @@ async def list_users(admin: dict = Depends(get_current_admin)):
         dt = u.get("created_at")
         dt_str = dt.isoformat() + "Z" if isinstance(dt, datetime) else str(dt) if dt else None
         user_id = u.get("id") or str(u["_id"])
+        enc_pwd = u.get("encrypted_password")
+        decrypted_pwd = decrypt_password(enc_pwd) if enc_pwd else None
         users_list.append(AdminUserResponse(
             id=user_id,
             email=u["email"],
             name=u.get("name"),
             role=u.get("role", "admin" if u["email"] == "admin@zydrakon.ai" else "user"),
             tier=u.get("tier", "free"),
-            created_at=dt_str
+            created_at=dt_str,
+            password=decrypted_pwd
         ))
     return users_list
 
 @router.post("/users", response_model=AdminUserResponse)
 async def create_user(user_in: AdminUserCreate, admin: dict = Depends(get_current_admin)):
-    """Create a new user account with hashed password."""
+    """Create a new user account with hashed password and encrypted password."""
     db = get_db()
     email = user_in.email.strip().lower()
     
@@ -69,6 +73,7 @@ async def create_user(user_in: AdminUserCreate, admin: dict = Depends(get_curren
         )
         
     hashed_password = get_password_hash(user_in.password)
+    encrypted_password = encrypt_password(user_in.password)
     user_id = f"user-{uuid.uuid4().hex[:8]}"
     created_time = datetime.utcnow().isoformat()
     
@@ -77,6 +82,7 @@ async def create_user(user_in: AdminUserCreate, admin: dict = Depends(get_curren
         "email": email,
         "name": user_in.name,
         "hashed_password": hashed_password,
+        "encrypted_password": encrypted_password,
         "role": user_in.role,
         "tier": user_in.tier,
         "allowed_models": (
@@ -96,7 +102,8 @@ async def create_user(user_in: AdminUserCreate, admin: dict = Depends(get_curren
         name=user_in.name,
         role=user_in.role,
         tier=user_in.tier,
-        created_at=created_time
+        created_at=created_time,
+        password=user_in.password
     )
 
 @router.get("/logs", response_model=List[AdminLogResponse])

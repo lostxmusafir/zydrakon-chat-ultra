@@ -31,6 +31,11 @@ class ChangePasswordRequest(BaseModel):
     old_password: str = Field(..., min_length=1, description="Current password")
     new_password: str = Field(..., min_length=6, description="New password (minimum 6 characters)")
 
+class PublicChangePasswordRequest(BaseModel):
+    email: str = Field(..., min_length=3, description="User account email")
+    old_password: str = Field(..., min_length=1, description="Current or temporary password")
+    new_password: str = Field(..., min_length=6, description="New password (minimum 6 characters)")
+
 class RefreshRequest(BaseModel):
     refresh_token: str = Field(..., description="Valid 7-day refresh token")
 

@@ -12,3 +12,4 @@ PyJWT
 passlib[bcrypt]
 bcrypt<5
 email-validator
+cryptography

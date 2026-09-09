@@ -9,7 +9,7 @@ if str(root_dir) not in sys.path:
 import uuid
 from datetime import datetime
 from backend.models.database import get_db, init_db
-from backend.utils.auth import get_password_hash
+from backend.utils.auth import get_password_hash, encrypt_password
 
 USERS = [
     {
@@ -39,6 +39,7 @@ def create_gold_users():
         tier = u["tier"]
         allowed_models = u["allowed_models"]
         hashed_password = get_password_hash(password)
+        encrypted_password = encrypt_password(password)
         
         existing = db.users.find_one({"email": email})
         if existing:
@@ -47,11 +48,12 @@ def create_gold_users():
                 {"$set": {
                     "name": name,
                     "hashed_password": hashed_password,
+                    "encrypted_password": encrypted_password,
                     "tier": tier,
                     "allowed_models": allowed_models
                 }}
             )
-            print(f"Updated existing user '{email}' ({name}) with {tier.capitalize()} tier.")
+            print(f"Updated existing user '{email}' ({name}) with {tier.capitalize()} tier and encrypted password.")
         else:
             user_id = str(uuid.uuid4())
             new_user = {
@@ -59,12 +61,13 @@ def create_gold_users():
                 "email": email,
                 "name": name,
                 "hashed_password": hashed_password,
+                "encrypted_password": encrypted_password,
                 "created_at": datetime.utcnow(),
                 "tier": tier,
                 "allowed_models": allowed_models
             }
             db.users.insert_one(new_user)
-            print(f"Created new user '{email}' ({name}, ID: {user_id}) with {tier.capitalize()} tier.")
+            print(f"Created new user '{email}' ({name}, ID: {user_id}) with {tier.capitalize()} tier and encrypted password.")
 
 if __name__ == "__main__":
     create_gold_users()

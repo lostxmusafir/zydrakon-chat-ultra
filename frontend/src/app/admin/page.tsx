@@ -16,7 +16,11 @@ import {
   Lock,
   User,
   Trash2,
-  LogOut
+  LogOut,
+  Eye,
+  EyeOff,
+  Copy,
+  Check
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import Link from "next/link";
@@ -28,6 +32,7 @@ interface UserAccount {
   role: string;
   tier: string;
   created_at?: string;
+  password?: string;
 }
 
 interface SearchLog {
@@ -46,6 +51,22 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const togglePasswordVisibility = (userId: string) => {
+    setVisiblePasswords((prev) => ({
+      ...prev,
+      [userId]: !prev[userId],
+    }));
+  };
+
+  const handleCopyPassword = (userId: string, pwd?: string) => {
+    if (!pwd) return;
+    navigator.clipboard.writeText(pwd);
+    setCopiedId(userId);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
   
   // Authentication check
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -440,6 +461,7 @@ export default function AdminDashboard() {
                     <tr className="border-b border-zinc-800/60 text-zinc-500 font-mono uppercase tracking-wider text-[11px] bg-zinc-900/10">
                       <th className="py-4 px-6">Name</th>
                       <th className="py-4 px-6">Email</th>
+                      <th className="py-4 px-6">Password</th>
                       <th className="py-4 px-6">Role</th>
                       <th className="py-4 px-6">Tier</th>
                       <th className="py-4 px-6">Joined</th>
@@ -449,13 +471,40 @@ export default function AdminDashboard() {
                   <tbody className="divide-y divide-zinc-800/40 text-zinc-300">
                     {usersList.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-8 text-center text-zinc-500 font-mono">No users found.</td>
+                        <td colSpan={7} className="py-8 text-center text-zinc-500 font-mono">No users found.</td>
                       </tr>
                     ) : (
                       usersList.map((user) => (
                         <tr key={user.id} className="hover:bg-zinc-800/10 transition-colors">
                           <td className="py-4 px-6 font-semibold text-white">{user.name}</td>
                           <td className="py-4 px-6 font-mono text-zinc-400">{user.email}</td>
+                          <td className="py-4 px-6">
+                            {user.password ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-mono text-xs bg-zinc-950/80 px-2.5 py-1 rounded-lg border border-zinc-800 text-zinc-300 select-all">
+                                  {visiblePasswords[user.id] ? user.password : "••••••••"}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => togglePasswordVisibility(user.id)}
+                                  className="p-1 rounded text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+                                  title={visiblePasswords[user.id] ? "Hide password" : "Show password"}
+                                >
+                                  {visiblePasswords[user.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyPassword(user.id, user.password)}
+                                  className="p-1 rounded text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+                                  title="Copy password"
+                                >
+                                  {copiedId === user.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-zinc-600 font-mono text-[11px] italic">Encrypted</span>
+                            )}
+                          </td>
                           <td className="py-4 px-6">
                             <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                               user.role === "admin" ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-zinc-800 text-zinc-400 border border-zinc-700/40"
