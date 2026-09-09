@@ -103,7 +103,7 @@ class OpenRouterClient:
         return key
 
     def _call_provider_api(self, provider: str, api_url: str, api_key: str, model: str, messages: List[dict]) -> str:
-        """Helper to invoke a provider endpoint."""
+        """Helper to invoke a provider endpoint with robust message sanitization."""
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
@@ -112,9 +112,32 @@ class OpenRouterClient:
             headers["HTTP-Referer"] = settings.FRONTEND_URL
             headers["X-Title"] = "Zydrakon AI"
 
+        # Sanitize messages: remove empty content, merge system prompts for strict APIs like Mistral, ensure valid sequence
+        sanitized_messages = []
+        system_prompts = []
+        for m in messages:
+            role = m.get("role", "user")
+            content = (m.get("content") or "").strip()
+            if not content:
+                continue
+            if role == "system":
+                system_prompts.append(content)
+            else:
+                sanitized_messages.append({"role": role, "content": content})
+
+        final_messages = []
+        if system_prompts:
+            final_messages.append({"role": "system", "content": "\n\n".join(system_prompts)})
+        final_messages.extend(sanitized_messages)
+
+        if not final_messages:
+            final_messages = [{"role": "user", "content": "Hello"}]
+        elif final_messages[-1]["role"] != "user":
+            final_messages.append({"role": "user", "content": "Please continue."})
+
         payload = {
             "model": model,
-            "messages": messages,
+            "messages": final_messages,
             "temperature": 0.7,
             "max_tokens": 4000
         }
@@ -176,8 +199,18 @@ class OpenRouterClient:
             messages.append({"role": "user", "content": message})
 
         try:
-            query = self._get_raw_completion("meta-llama/llama-3-8b-instruct:free", messages)
+            query = self._get_raw_completion("liquid/lfm-2.5-2.6b:free", messages)
             query = query.strip().strip('"').strip("'")
+            
+            # Extract clean search query if wrapped in tool calling syntax or brackets
+            tool_match = re.search(r"query=['\"]([^'\"]+)['\"]", query)
+            if tool_match:
+                query = tool_match.group(1).strip()
+            else:
+                query = re.sub(r"<\|[^|]+\|>", "", query)
+                query = re.sub(r"\[.*?\]", "", query)
+                query = query.strip().strip('"').strip("'")
+
             if "NO_SEARCH" in query or len(query) < 2:
                 return "NO_SEARCH"
             return query
