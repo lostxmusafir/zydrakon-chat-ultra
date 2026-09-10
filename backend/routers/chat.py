@@ -114,6 +114,13 @@ async def chat(chat_request: ChatRequest, request: Request, user: dict = Depends
     # 2. Check Cache
     cached_reply = cache_service.get_cached_response(message_content, model_used)
     if cached_reply:
+        # Purge stale cache if it mentions Raj Patil but user didn't ask for creator/Raj Patil
+        if "raj patil" in cached_reply.lower() and not detect_identity_query(message_content):
+            logger.info(f"Purging stale cached response mentioning Raj Patil for query: {message_content}")
+            cache_service.delete_cached_response(message_content)
+            cached_reply = None
+
+    if cached_reply:
         # Save user message and cached assistant reply to db messages history
         try:
             now = datetime.utcnow()
@@ -177,6 +184,19 @@ async def chat(chat_request: ChatRequest, request: Request, user: dict = Depends
         search_results = None
     
     latency_ms = int((time.time() - start_time) * 1000)
+
+    # Safeguard: ensure Raj Patil is never mentioned unprompted across any model / API
+    if not detect_identity_query(message_content) and "raj patil" in reply_content.lower():
+        msg_clean = message_content.lower().strip()
+        if msg_clean in ["hi", "hello", "hey", "hlo", "namaste", "hi there", "hello there", "hy", "hola", "greetings"]:
+            reply_content = "Hello! I am Zydrakon AI. How can I assist you today?"
+        else:
+            lines = reply_content.split("\n")
+            filtered_lines = [l for l in lines if "raj patil" not in l.lower() and "raj" not in l.lower()]
+            if filtered_lines:
+                reply_content = "\n".join(filtered_lines).strip()
+            else:
+                reply_content = "I am Zydrakon AI, ready to assist you with your request. How can I help?"
 
     # Extract Google Maps Navigation Route Info if query is route-related
     route_data = navigation_service.extract_route_info(message_content)
@@ -311,6 +331,19 @@ async def replay(req: ReplayRequest, request: Request, user: dict = Depends(get_
             agent_system_prompt=None
         )
         latency_ms = int((time.time() - start_time) * 1000)
+
+        # Safeguard: ensure Raj Patil is never mentioned unprompted across any model / API
+        if not detect_identity_query(user_msg["content"]) and "raj patil" in reply_content.lower():
+            msg_clean = user_msg["content"].lower().strip()
+            if msg_clean in ["hi", "hello", "hey", "hlo", "namaste", "hi there", "hello there", "hy", "hola", "greetings"]:
+                reply_content = "Hello! I am Zydrakon AI. How can I assist you today?"
+            else:
+                lines = reply_content.split("\n")
+                filtered_lines = [l for l in lines if "raj patil" not in l.lower() and "raj" not in l.lower()]
+                if filtered_lines:
+                    reply_content = "\n".join(filtered_lines).strip()
+                else:
+                    reply_content = "I am Zydrakon AI, ready to assist you with your request. How can I help?"
 
         # 6. Save interactions back
         now = datetime.utcnow()

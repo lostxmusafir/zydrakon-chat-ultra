@@ -9,69 +9,70 @@ def detect_identity_query(message: str) -> Optional[str]:
     # Normalize query (lowercase, remove punctuation except spaces)
     normalized = re.sub(r'[^\w\s]', '', message.lower()).strip()
     
-    # 1. Check for creator / builder / maker / developer
+    # 1. Check for creator / builder / maker / developer (explicit questions only)
     creator_patterns = [
-        r"who (made|created|developed|programmed|coded|designed) you",
-        r"who is your (creator|developer|maker|author|father|programmer|designer|parent)",
-        r"who is raj\b",
-        r"who is raj patil",
-        r"\b(creator|developer|maker|author|programmer|designer)\b.*\byou\b",
-        r"\byou\b.*\b(creator|developer|maker|author|programmer|designer)\b"
+        r"\bwho (made|created|developed|programmed|coded|designed|built) you\b",
+        r"\bwho is your (creator|developer|maker|author|father|programmer|designer|builder|parent)\b",
+        r"\bwho (is|was) (the )?(creator|developer|maker|author|founder|builder) of (you|zydrakon)\b",
+        r"\bwho (made|created|developed|built) zydrakon\b",
+        r"\bwho is raj\b",
+        r"\bwho is raj patil\b",
+        r"\btell me about raj patil\b",
+        r"\btell me about raj\b",
+        r"\braj patil kaun hai\b",
+        r"\braj patil kon hai\b",
+        r"\btumhe kisne banaya\b",
+        r"\btumhe kisne create kiya\b",
+        r"\byou were (made|created|developed|built) by whom\b"
     ]
     
     # 2. Check for source code / repositories
     source_patterns = [
-        r"source code",
-        r"sourcecode",
-        r"github",
-        r"git repo",
-        r"git repository",
-        r"where is (your|the) code",
-        r"are you open source",
-        r"is your code open"
+        r"\bsource code\b",
+        r"\bsourcecode\b",
+        r"\bgit repo\b",
+        r"\bgit repository\b",
+        r"\bwhere is (your|the) code\b",
+        r"\bare you open source\b",
+        r"\bis your code open\b"
     ]
     
     # 3. Check for pre-brain / base model / base brain
     prebrain_patterns = [
-        r"pre\s?brain",
-        r"base\s?model",
-        r"base\s?brain",
-        r"what model are you",
-        r"what is your model",
-        r"what is your base",
-        r"what model is this",
-        r"what is your architecture",
-        r"what base model",
-        r"are you (llama|gemma|mistral|qwen|chatgpt|gpt)"
+        r"\bpre\s?brain\b",
+        r"\bbase\s?model\b",
+        r"\bbase\s?brain\b",
+        r"\bwhat model are you\b",
+        r"\bwhat is your model\b",
+        r"\bwhat is your base model\b",
+        r"\bwhat model is this\b",
+        r"\bwhat is your architecture\b",
+        r"\bwhat base model\b"
     ]
     
-    # 4. Check for meeting / appointment / seeing Raj
+    # 4. Check for meeting / appointment / seeing Raj (must explicitly mention Raj)
     meeting_patterns = [
-        r"meet\s?(with\s?)?raj",
-        r"meeting\s?(with\s?)?raj",
-        r"appointment\s?(with\s?)?raj",
-        r"schedule\s?.*raj",
-        r"see\s?raj",
-        r"talk\s?to\s?raj",
-        r"raj\s?se\s?milna",
-        r"raj\s?se\s?baat",
-        r"raj\s?meeting",
-        r"book\s?a?\s?meeting",
-        r"can i meet raj"
+        r"meet\s+(with\s+)?raj(\s+patil)?\b",
+        r"meeting\s+(with\s+)?raj(\s+patil)?\b",
+        r"appointment\s+(with\s+)?raj(\s+patil)?\b",
+        r"schedule\s+.*raj(\s+patil)?\b",
+        r"see\s+raj(\s+patil)?\b",
+        r"talk\s+to\s+raj(\s+patil)?\b",
+        r"raj(\s+patil)?\s+se\s+(milna|baat)\b",
+        r"book\s+(a\s+)?meeting\s+(with\s+)?raj(\s+patil)?\b",
+        r"can\s+i\s+meet\s+raj(\s+patil)?\b"
     ]
     
     # 5. Check for location / house / residence / whereabouts of Raj
     location_patterns = [
-        r"where (is|does) raj",
-        r"raj\s?(patil\s?)?(location|house|residence|home|whereabouts|address|city|country)",
-        r"raj\s?(patil\s?)?kaha",
-        r"raj\s?ka\s?ghar",
-        r"raj\s?kahan",
-        r"where does raj patil live",
-        r"where is raj patil",
-        r"raj patil house",
-        r"raj patil residence",
-        r"raj patil location"
+        r"where\s+(is|does)\s+raj(\s+patil)?\b",
+        r"raj\s*(patil)?\s*(location|house|residence|home|whereabouts|address|city|country)\b",
+        r"raj\s*(patil)?\s*(kaha|kahan|ka\s*ghar)\b",
+        r"where\s+does\s+raj\s+patil\s+live\b",
+        r"where\s+is\s+raj\s+patil\b",
+        r"raj\s+patil\s+house\b",
+        r"raj\s+patil\s+residence\b",
+        r"raj\s+patil\s+location\b"
     ]
     
     # Run tests on normalized query

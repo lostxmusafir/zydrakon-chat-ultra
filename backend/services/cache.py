@@ -46,4 +46,29 @@ class CacheService:
         except Exception as e:
             logger.error(f"Error writing to cache: {str(e)}")
 
+    def delete_cached_response(self, query: str, model: Optional[str] = None):
+        """Invalidates cache entries for a given query (and optionally specific model)."""
+        db = get_db()
+        query_hash = self._get_hash(query)
+        try:
+            filter_query = {"query_hash": query_hash}
+            if model:
+                filter_query["model_used"] = model
+            db.cached_responses.delete_many(filter_query)
+            logger.info(f"Deleted cache entries for query hash {query_hash}")
+        except Exception as e:
+            logger.error(f"Error deleting cached response: {str(e)}")
+
+    def clear_unwanted_raj_cache(self):
+        """Cleans out stale cached entries that mention Raj Patil for general queries."""
+        db = get_db()
+        try:
+            result = db.cached_responses.delete_many({
+                "response": {"$regex": "raj patil", "$options": "i"}
+            })
+            if result.deleted_count > 0:
+                logger.info(f"Purged {result.deleted_count} stale cache entries containing 'Raj Patil'")
+        except Exception as e:
+            logger.error(f"Error purging stale Raj Patil cache entries: {str(e)}")
+
 cache_service = CacheService()

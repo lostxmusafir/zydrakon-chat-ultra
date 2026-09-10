@@ -13,6 +13,8 @@ from backend.models.database import init_db
 from backend.routers import chat, sessions, auth, admin, workspaces
 from backend.utils.config import settings
 
+from backend.services.cache import cache_service
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -47,6 +49,7 @@ app.include_router(workspaces.router)
 def startup_event():
     logger.info("Initializing Zydrakon AI Database...")
     init_db()
+    cache_service.clear_unwanted_raj_cache()
     logger.info("Zydrakon AI Database initialized successfully!")
 
 @app.api_route("/", methods=["GET", "HEAD"])

@@ -275,5 +275,20 @@ def test_thinking_mode_with_results():
         assert asst_msg["search_results"][0]["url"] == "https://spacex.com/news1"
         assert asst_msg["search_results"][0]["snippet"] == "SpaceX launched another Starlink rocket today."
 
+def test_no_raj_patil_unless_asked():
+    from backend.utils.identity import detect_identity_query
+    # Greetings should NOT trigger identity
+    assert detect_identity_query("hi") is None
+    assert detect_identity_query("hello") is None
+    assert detect_identity_query("hey there") is None
+    assert detect_identity_query("how are you?") is None
+    assert detect_identity_query("can you help me as a web developer?") is None
+    assert detect_identity_query("how to book a meeting room in office?") is None
+    assert detect_identity_query("write python code for quicksort") is None
 
-
+    # Explicit creator queries MUST trigger identity
+    assert detect_identity_query("who created you?") is not None
+    assert detect_identity_query("who is raj patil?") is not None
+    assert detect_identity_query("where is raj patil's house?") is not None
+    assert detect_identity_query("can i book a meeting with raj?") is not None
+    assert detect_identity_query("tumhe kisne banaya?") is not None
