@@ -327,6 +327,7 @@ export default function Home() {
     const storedUser = localStorage.getItem("zydrakon_user");
     if (token) {
       setIsAuthenticated(true);
+      setShowFullLoginPage(false);
       if (storedUser) {
         try {
           const parsedUser = JSON.parse(storedUser);

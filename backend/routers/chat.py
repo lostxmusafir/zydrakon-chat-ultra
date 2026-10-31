@@ -28,7 +28,7 @@ def get_client_identifier(request: Request, session_id: str, user_id: str) -> st
 async def chat(chat_request: ChatRequest, request: Request, user: dict = Depends(get_current_user)):
     session_id = chat_request.session_id
     message_content = chat_request.message
-    model_used = chat_request.model or "meta-llama/llama-3-8b-instruct:free"
+    model_used = chat_request.model or "zydrakon-free"
     
     # Enforce Gold (zhipu-free) or Premium (zydrakon-premium) if thinking/Deep Research mode is enabled
     if chat_request.thinking and model_used == "zydrakon-free":
@@ -303,7 +303,7 @@ async def replay(req: ReplayRequest, request: Request, user: dict = Depends(get_
         })
 
         # 5. Execute LLM Call (Bypassing cache for fresh generation)
-        model_used = req.model or user_msg.get("model_used") or "meta-llama/llama-3-8b-instruct:free"
+        model_used = req.model or user_msg.get("model_used") or "zydrakon-free"
         thinking_mode = req.thinking or False
 
         # Check user allowed models
@@ -413,7 +413,7 @@ async def prove_it(req: ProveItRequest, request: Request, user: dict = Depends(g
         )
 
         # 5. Call LLM
-        model_used = req.model or msg.get("model_used") or "meta-llama/llama-3-8b-instruct:free"
+        model_used = req.model or msg.get("model_used") or "zydrakon-free"
 
         rate_limit_key = get_client_identifier(request, req.session_id, user["id"])
         is_limited, _, _ = rate_limiter.check_rate_limit(rate_limit_key)

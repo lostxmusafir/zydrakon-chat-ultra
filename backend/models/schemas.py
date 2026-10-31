@@ -4,7 +4,7 @@ from typing import Optional, List, Dict, Any
 class ChatRequest(BaseModel):
     session_id: str = Field(..., description="The unique session identifier")
     message: str = Field(..., min_length=1, description="The message content to query")
-    model: Optional[str] = Field("meta-llama/llama-3-8b-instruct:free", description="Specific OpenRouter free model to use")
+    model: Optional[str] = Field("zydrakon-free", description="Specific OpenRouter free model to use")
     thinking: Optional[bool] = Field(False, description="Enable thinking mode")
     agent_system_prompt: Optional[str] = Field(None, description="Optional agent persona system prompt to prepend")
 
@@ -135,7 +135,7 @@ class WorkspaceResponse(BaseModel):
 
 class WorkspaceMessageCreate(BaseModel):
     content: str = Field(..., min_length=1)
-    model: Optional[str] = Field("meta-llama/llama-3-8b-instruct:free")
+    model: Optional[str] = Field("zydrakon-free")
     ask_ai: Optional[bool] = Field(False, description="Whether to trigger an AI answer in team chat")
 
 class WorkspaceMessageResponse(BaseModel):

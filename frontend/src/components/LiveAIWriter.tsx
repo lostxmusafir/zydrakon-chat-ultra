@@ -121,7 +121,7 @@ export function LiveAIWriter({ onSendToChat, selectedModel }: LiveAIWriterProps)
 
     try {
       // Try fetching from backend API or build live streaming output
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+      const backendUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000");
       const token = typeof window !== "undefined" ? localStorage.getItem("zydrakon_token") : null;
 
       const systemInstruction = `You are a world-class AI Writer. Write high quality content for the following topic.

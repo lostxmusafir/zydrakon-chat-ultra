@@ -252,6 +252,14 @@ export function LoginPage({ onSuccess, onContinueGuest }: LoginPageProps) {
                 <ArrowRight className="w-4 h-4" />
               </button>
 
+              <button
+                type="button"
+                onClick={onContinueGuest}
+                className="w-full py-3 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-semibold text-xs tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Continue as Guest</span>
+              </button>
+
               <div className="pt-2 text-center">
                 <button
                   type="button"
