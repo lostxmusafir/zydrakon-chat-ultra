@@ -160,7 +160,7 @@ class OpenRouterClient:
             "temperature": 0.7,
             "max_tokens": 4000
         }
-        response = requests.post(api_url, headers=headers, json=payload, timeout=(5, 15))
+        response = requests.post(api_url, headers=headers, json=payload, timeout=(10, 60))
         
         # Check specifically for rate limiting
         if response.status_code == 429:
